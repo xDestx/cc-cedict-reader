@@ -32,7 +32,7 @@ type Ci struct {
 	Gloss    []string
 }
 
-const parseLineRegex = `^([\p{Han}，·]+) ([\p{Han}，·]+) \[\[?((?:(?:\w+\d)+\s*,?\s*)+)\]\]? \/([\w\(\)\s,\/\.\--–;\p{Han}，·]+)/$`
+const parseLineRegex = `^([\p{Han}，·]+) ([\p{Han}，·]+) \[\[?((?:(?:\w+\d)+\s*,?\s*)+)\]\]? \/(.+)\/$`
 const pinyinRegex = `([a-zA-Z]+)([12345])`
 
 func pinyinChunkFromStr(pyChunkStr string) (PinyinChunk, error) {

@@ -1,8 +1,7 @@
 package cccedictparser
 
 import (
-	"errors"
-	"regexp"
+	"fmt"
 	"strings"
 )
 
@@ -13,48 +12,100 @@ type Ci struct {
 	Gloss    []string
 }
 
-const pinyinRegex = `\[\[?((?:(?:\w+:?·?\d?)+\s*,?·?\s*)+)\]\]?`
+const section_traditional = 1
+const section_simplified = 3
+const section_transition_pinyin = 4
+const section_pinyin = 5
+const section_transition_gloss = 6
+const section_gloss = 7
 
-func joinAllStrings(s []string, joinStr string) string {
-	var sb strings.Builder
-	for i := range s {
-		sb.WriteString(s[i])
-		sb.WriteString(joinStr)
+// true if not out of bounds
+// false if out of bounds
+func tryPeak(arr []string, index int) (string, bool) {
+	if index >= len(arr) {
+		return "", false
 	}
-
-	return sb.String()
+	return arr[index], true
 }
 
-// Traditional Simplified [[pinb1yin1]] /gloss; gloss; .../gloss; gloss; .../
+// Traditional Simplified [[pin1yin1]] /gloss; gloss; .../gloss; gloss; .../
 func ParseLine(line string) (Ci, error) {
-	items := strings.Split(line, " ")
-	r, err := regexp.Compile(pinyinRegex)
+	chars := strings.Split(line, "")
 
-	pinyinAndGlossStr := joinAllStrings(items[2:], " ")
-	pinyinGlossSplit := strings.Split(pinyinAndGlossStr, " /")
-	pinyinOnly := pinyinGlossSplit[0]
-	fullGloss := joinAllStrings(pinyinGlossSplit[1:], " /")
-	fullGlossStripped := fullGloss[0:][:len(fullGloss)-4]
-	g := strings.Split(fullGlossStripped, "/")
+	traditionalDelimit := " "
+	simplifiedDelimit := " "
+	pinyinEnd := "]"
 
-	if err != nil {
-		return Ci{}, err
+	glossStart := "/"
+
+	var fantizi string
+	var jiantizi string
+	var pinyin string
+	var gloss []string
+
+	var builder strings.Builder
+	currentSection := section_traditional
+
+	for i, r := range line {
+
+		if currentSection == section_traditional {
+
+			if string(r) == traditionalDelimit {
+				fantizi = builder.String()
+				builder.Reset()
+				currentSection = section_simplified
+			} else {
+				builder.WriteRune(r)
+			}
+
+		} else if currentSection == section_simplified {
+
+			if string(r) == simplifiedDelimit {
+				jiantizi = builder.String()
+				builder.Reset()
+				currentSection = section_transition_pinyin
+			} else {
+				builder.WriteRune(r)
+			}
+
+		} else if currentSection == section_transition_pinyin {
+
+			if next, ok := tryPeak(chars, i+1); ok && string(r) == "[" {
+				if next != "[" {
+					currentSection = section_pinyin
+				}
+			}
+
+		} else if currentSection == section_pinyin {
+			if string(r) == pinyinEnd {
+				pinyin = builder.String()
+				builder.Reset()
+				currentSection = section_transition_gloss
+			} else {
+				builder.WriteRune(r)
+			}
+		} else if currentSection == section_transition_gloss {
+			if string(r) == pinyinEnd || string(r) == " " {
+				//nothing
+			} else if string(r) == glossStart {
+				currentSection = section_gloss
+			} else {
+				return Ci{}, fmt.Errorf("failed to read gloss for line (%s)", line)
+			}
+		} else if currentSection == section_gloss {
+			if string(r) == "/" {
+				gloss = append(gloss, builder.String())
+				builder.Reset()
+			} else {
+				builder.WriteRune(r)
+			}
+		}
 	}
-
-	pinyinMatch := r.FindStringSubmatch(pinyinOnly)
-
-	if len(pinyinMatch) == 0 {
-		return Ci{}, errors.New("error parsing pinyin for line: " + line)
-	}
-
-	t := items[0]
-	s := items[1]
-	p := pinyinMatch[1]
 
 	return Ci{
-		Fantizi:  t,
-		Jiantizi: s,
-		Pinyin:   p,
-		Gloss:    g,
+		Fantizi:  fantizi,
+		Jiantizi: jiantizi,
+		Pinyin:   pinyin,
+		Gloss:    gloss,
 	}, nil
 }

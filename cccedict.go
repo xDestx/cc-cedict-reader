@@ -5,11 +5,19 @@ import (
 	"strings"
 )
 
+type FormatVersion = string
+
+const (
+	V1 FormatVersion = "V1"
+	V2 FormatVersion = "V2"
+)
+
 type Ci struct {
 	Fantizi  string
 	Jiantizi string
 	Pinyin   string
 	Gloss    []string
+	FormatVersion
 }
 
 const section_traditional = 1

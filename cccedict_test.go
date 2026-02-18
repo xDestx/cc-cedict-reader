@@ -1,6 +1,8 @@
 package cccedictparser
 
-import "testing"
+import (
+	"testing"
+)
 
 type testItem struct {
 	Name string
@@ -210,6 +212,40 @@ func parseLine_PinyinV1Matches(t *testing.T) {
 			},
 		},
 	}
+
+	for _, v := range cases {
+		parsed, err := ParseLine(v.Sentence)
+
+		if err != nil {
+			t.Errorf(err.Error())
+			continue
+		}
+
+		if parsed.FormatVersion != V1 {
+			t.Errorf("expected v1 pinyin for line \"%s\".", v.Sentence)
+			continue
+		}
+
+		skip := false
+		for i := 0; i < len(parsed.Pinyin); i++ {
+			if skip {
+				break
+			}
+
+			pyw := parsed.Pinyin[i]
+			if len(pyw.Word) != 1 {
+				t.Errorf("expected len of 1 for v1 pinyin on line \"%s\".", v.Sentence)
+				skip = true
+				continue
+			}
+
+			if !(pyw.Word[i].Sound == v.Pinyin[i].Sound && pyw.Word[i].Tone == v.Pinyin[i].Tone && pyw.Word[i].Type == v.Pinyin[i].Type) {
+				t.Errorf("failed when checking v1 pinyin. Line \"%s\".", v.Sentence)
+				skip = true
+				continue
+			}
+		}
+	}
 }
 
 func parseLine_PinyinV2Matches(t *testing.T) {
@@ -305,9 +341,33 @@ func parseLine_PinyinV2Matches(t *testing.T) {
 				{
 					Word: []PinyinV1{
 						{
-							Sound: "",
+							Sound: "zen",
 							Type:  Normal,
-							Tone:  None,
+							Tone:  T3,
+						},
+						{
+							Sound: "me",
+							Type:  Normal,
+							Tone:  T5,
+						},
+					},
+				},
+				{
+					Word: []PinyinV1{
+						{
+							Sound: "hui",
+							Type:  Normal,
+							Tone:  T2,
+						},
+						{
+							Sound: "shi",
+							Type:  Normal,
+							Tone:  T4,
+						},
+						{
+							Sound: "r",
+							Type:  Normal,
+							Tone:  T5,
 						},
 					},
 				},
@@ -319,9 +379,18 @@ func parseLine_PinyinV2Matches(t *testing.T) {
 				{
 					Word: []PinyinV1{
 						{
-							Sound: "",
-							Type:  Normal,
+							Sound: "K",
+							Type:  Alphabet,
 							Tone:  None,
+						},
+					},
+				},
+				{
+					Word: []PinyinV1{
+						{
+							Sound: "ren",
+							Type:  Normal,
+							Tone:  T2,
 						},
 					},
 				},
@@ -333,8 +402,17 @@ func parseLine_PinyinV2Matches(t *testing.T) {
 				{
 					Word: []PinyinV1{
 						{
-							Sound: "",
+							Sound: "san",
 							Type:  Normal,
+							Tone:  T1,
+						},
+					},
+				},
+				{
+					Word: []PinyinV1{
+						{
+							Sound: "Q",
+							Type:  Alphabet,
 							Tone:  None,
 						},
 					},
@@ -347,9 +425,33 @@ func parseLine_PinyinV2Matches(t *testing.T) {
 				{
 					Word: []PinyinV1{
 						{
-							Sound: "",
+							Sound: "Da",
 							Type:  Normal,
-							Tone:  None,
+							Tone:  T4,
+						},
+						{
+							Sound: "wei",
+							Type:  Normal,
+							Tone:  T4,
+						},
+					},
+				},
+				{
+					Word: []PinyinV1{
+						{
+							Sound: "Ai",
+							Type:  Normal,
+							Tone:  T4,
+						},
+						{
+							Sound: "deng",
+							Type:  Normal,
+							Tone:  T1,
+						},
+						{
+							Sound: "bao",
+							Type:  Normal,
+							Tone:  T3,
 						},
 					},
 				},
@@ -361,14 +463,68 @@ func parseLine_PinyinV2Matches(t *testing.T) {
 				{
 					Word: []PinyinV1{
 						{
-							Sound: "",
+							Sound: "fen",
 							Type:  Normal,
-							Tone:  None,
+							Tone:  T1,
+						},
+						{
+							Sound: "jiu",
+							Type:  Normal,
+							Tone:  T3,
+						},
+						{
+							Sound: "bi",
+							Type:  Normal,
+							Tone:  T4,
+						},
+						{
+							Sound: "he",
+							Type:  Normal,
+							Tone:  T2,
+						},
+					},
+				},
+				{
+					Word: []PinyinV1{
+						{
+							Sound: "he",
+							Type:  Normal,
+							Tone:  T2,
+						},
+						{
+							Sound: "jiu",
+							Type:  Normal,
+							Tone:  T3,
+						},
+						{
+							Sound: "bi",
+							Type:  Normal,
+							Tone:  T4,
+						},
+						{
+							Sound: "fen",
+							Type:  Normal,
+							Tone:  T1,
 						},
 					},
 				},
 			},
 		},
+	}
+	for _, v := range cases {
+		parsed, err := ParseLine(v.Sentence)
+
+		if err != nil {
+			t.Errorf(err.Error())
+			continue
+		}
+
+		if parsed.FormatVersion != V2 {
+			t.Errorf("expected v2 pinyin for line \"%s\".", v.Sentence)
+			continue
+		}
+
+		//TODO assert correct
 	}
 }
 

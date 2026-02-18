@@ -13,10 +13,11 @@ const (
 )
 
 type Ci struct {
-	Fantizi  string
-	Jiantizi string
-	Pinyin   string
-	Gloss    []string
+	Fantizi   string
+	Jiantizi  string
+	Pinyin    []PinyinV2
+	PinyinRaw string
+	Gloss     []string
 	FormatVersion
 }
 

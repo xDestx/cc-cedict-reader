@@ -137,26 +137,238 @@ func parseLine_SimplifiedMatches(t *testing.T) {
 
 }
 
+type expectedPinyinV1 struct {
+	Sentence string
+	Pinyin   []PinyinV1
+}
+
+type expectedPinyinV2 struct {
+	Sentence string
+	Pinyin   []PinyinV2
+}
+
 func parseLine_PinyinV1Matches(t *testing.T) {
-	cases := []string{
-		"K人 K人 [K ren2] /(slang) to hit sb; to beat sb/",
-		"打算 打算 [xx5] /words/",
-		"大衛·艾登堡 大卫·艾登堡 [[Da4 wei4 · Ai4 deng1 bao3]] /David Attenborough (1926), British naturalist and broadcaster/",
+	cases := []expectedPinyinV1{
+		{
+			Sentence: "K人 K人 [K ren2] /(slang) to hit sb; to beat sb/",
+			Pinyin: []PinyinV1{
+				{
+					Sound: "K",
+					Type:  Alphabet,
+					Tone:  None,
+				},
+				{
+					Sound: "ren",
+					Type:  Normal,
+					Tone:  T2,
+				},
+			},
+		},
+		{
+			Sentence: "打算 打算 [xx5] /words/",
+			Pinyin: []PinyinV1{
+				{
+					Sound: "xx",
+					Type:  Unknown,
+					Tone:  T5,
+				},
+			},
+		},
+		{
+			Sentence: "大衛·艾登堡 大卫·艾登堡 [[Da4 wei4 · Ai4 deng1 bao3]] /David Attenborough (1926), British naturalist and broadcaster/",
+			Pinyin: []PinyinV1{
+				{
+					Sound: "Da",
+					Type:  Normal,
+					Tone:  T4,
+				},
+				{
+					Sound: "wei",
+					Type:  Normal,
+					Tone:  T4,
+				},
+				{
+					Sound: "·",
+					Type:  Special,
+					Tone:  None,
+				},
+				{
+					Sound: "Ai",
+					Type:  Normal,
+					Tone:  T4,
+				},
+				{
+					Sound: "deng",
+					Type:  Normal,
+					Tone:  T1,
+				},
+				{
+					Sound: "bao",
+					Type:  Normal,
+					Tone:  T3,
+				},
+			},
+		},
 	}
 }
 
 func parseLine_PinyinV2Matches(t *testing.T) {
-	cases := []string{
-		"打算 打算 [[xx5]] /words/",
-		"打算 打算 [[{e}ren2]] /words/",
-		"打算 打算 [[e-ren2]] /words/",
-		"打算 打算 [[yi4ren2]] /words/",
-		"打算 打算 [[nu:3]] /words/",
-		"打算 打算 [[zen3me5 hui2shi4 r5]] /words/",
-		"K人 K人 [[K ren2]] /(slang) to hit sb; to beat sb/",
-		"3Q 3Q [[san1 Q]] /thx/",
-		"大衛·艾登堡 大卫·艾登堡 [[Da4wei4 Ai4deng1bao3]] /David Attenborough (1926), British naturalist and broadcaster/",
-		"分久必合，合久必分 分久必合，合久必分 [[fen1jiu3-bi4he2, he2jiu3-bi4fen1]] /lit. that which is long divided must unify, and that which is long unified must divide (proverb, from Romance of the Three Kingdoms 三國演義|三国演义[San1guo2 Yan3yi4])/fig. things are constantly changing/",
+	cases := []expectedPinyinV2{
+		{
+			Sentence: "打算 打算 [[xx5]] /words/",
+			Pinyin: []PinyinV2{
+				{
+					Word: []PinyinV1{
+						{
+							Sound: "xx",
+							Type:  Unknown,
+							Tone:  T5,
+						},
+					},
+				},
+			},
+		},
+		{
+			Sentence: "打算 打算 [[{e}ren2]] /words/",
+			Pinyin: []PinyinV2{
+				{
+					Word: []PinyinV1{
+						{
+							Sound: "e",
+							Type:  Alphabet,
+							Tone:  None,
+						},
+						{
+							Sound: "ren",
+							Type:  Normal,
+							Tone:  T2,
+						},
+					},
+				},
+			},
+		},
+		{
+			Sentence: "打算 打算 [[e-ren2]] /words/",
+			Pinyin: []PinyinV2{
+				{
+					Word: []PinyinV1{
+						{
+							Sound: "e",
+							Type:  Alphabet,
+							Tone:  None,
+						},
+						{
+							Sound: "ren",
+							Type:  Normal,
+							Tone:  T2,
+						},
+					},
+				},
+			},
+		},
+		{
+			Sentence: "打算 打算 [[yi4ren2]] /words/",
+			Pinyin: []PinyinV2{
+				{
+					Word: []PinyinV1{
+						{
+							Sound: "yi",
+							Type:  Normal,
+							Tone:  T4,
+						},
+						{
+							Sound: "ren",
+							Type:  Normal,
+							Tone:  T2,
+						},
+					},
+				},
+			},
+		},
+		{
+			Sentence: "打算 打算 [[nu:3]] /words/",
+			Pinyin: []PinyinV2{
+				{
+					Word: []PinyinV1{
+						{
+							Sound: "nv",
+							Type:  Normal,
+							Tone:  T3,
+						},
+					},
+				},
+			},
+		},
+		{
+			Sentence: "打算 打算 [[zen3me5 hui2shi4 r5]] /words/",
+			Pinyin: []PinyinV2{
+				{
+					Word: []PinyinV1{
+						{
+							Sound: "",
+							Type:  Normal,
+							Tone:  None,
+						},
+					},
+				},
+			},
+		},
+		{
+			Sentence: "K人 K人 [[K ren2]] /(slang) to hit sb; to beat sb/",
+			Pinyin: []PinyinV2{
+				{
+					Word: []PinyinV1{
+						{
+							Sound: "",
+							Type:  Normal,
+							Tone:  None,
+						},
+					},
+				},
+			},
+		},
+		{
+			Sentence: "3Q 3Q [[san1 Q]] /thx/",
+			Pinyin: []PinyinV2{
+				{
+					Word: []PinyinV1{
+						{
+							Sound: "",
+							Type:  Normal,
+							Tone:  None,
+						},
+					},
+				},
+			},
+		},
+		{
+			Sentence: "大衛·艾登堡 大卫·艾登堡 [[Da4wei4 Ai4deng1bao3]] /David Attenborough (1926), British naturalist and broadcaster/",
+			Pinyin: []PinyinV2{
+				{
+					Word: []PinyinV1{
+						{
+							Sound: "",
+							Type:  Normal,
+							Tone:  None,
+						},
+					},
+				},
+			},
+		},
+		{
+			Sentence: "分久必合，合久必分 分久必合，合久必分 [[fen1jiu3-bi4he2, he2jiu3-bi4fen1]] /lit. that which is long divided must unify, and that which is long unified must divide (proverb, from Romance of the Three Kingdoms 三國演義|三国演义[San1guo2 Yan3yi4])/fig. things are constantly changing/",
+			Pinyin: []PinyinV2{
+				{
+					Word: []PinyinV1{
+						{
+							Sound: "",
+							Type:  Normal,
+							Tone:  None,
+						},
+					},
+				},
+			},
+		},
 	}
 }
 

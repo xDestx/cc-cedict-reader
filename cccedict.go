@@ -20,6 +20,36 @@ type Ci struct {
 	FormatVersion
 }
 
+type Tone = uint8
+
+const (
+	None Tone = 0
+	T1   Tone = 1
+	T2   Tone = 2
+	T3   Tone = 3
+	T4   Tone = 4
+	T5   Tone = 5
+)
+
+type PinyinType = uint8
+
+const (
+	Unknown  PinyinType = 0
+	Normal   PinyinType = 1
+	Alphabet PinyinType = 2
+	Special  PinyinType = 3
+)
+
+type PinyinV1 struct {
+	Sound string
+	Tone  Tone
+	Type  PinyinType
+}
+
+type PinyinV2 struct {
+	Word []PinyinV1
+}
+
 const section_traditional = 1
 const section_simplified = 3
 const section_transition_pinyin = 4

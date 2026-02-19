@@ -67,6 +67,26 @@ func tryPeak(arr []string, index int) (string, bool) {
 	return arr[index], true
 }
 
+func (p PinyinV1) String() string {
+	return fmt.Sprintf("PinyinV1{Sound:\"%s\", Tone: %d, Type: %d}", p.Sound, p.Tone, p.Type)
+}
+
+func (p PinyinV2) String() string {
+	strs := []string{}
+	for _, v := range p.Word {
+		strs = append(strs, v.String())
+	}
+	return fmt.Sprintf("PinyinV2{Word:[%s]}", strings.Join(strs, ", "))
+}
+
+func (ci Ci) String() string {
+	return fmt.Sprintf("Ci{Fantizi:\"%s\", Jiantizi:\"%s\", Pinyin:%s, PinyinRaw:\"%s\", Gloss:[%s], FormatVersion:%s}", ci.Fantizi, ci.Jiantizi, "", strings.Join(ci.Gloss, ", "), ci.PinyinRaw, ci.FormatVersion)
+}
+
+func pinyinStrToPinyin(pys string) []PinyinV2 {
+	return []PinyinV2{}
+}
+
 // Traditional Simplified [[pin1yin1]] /gloss; gloss; .../gloss; gloss; .../
 func ParseLine(line string) (Ci, error) {
 	chars := strings.Split(line, "")
@@ -84,6 +104,8 @@ func ParseLine(line string) (Ci, error) {
 
 	var builder strings.Builder
 	currentSection := section_traditional
+
+	pyVersion := V1
 
 	for i, r := range line {
 
@@ -142,9 +164,10 @@ func ParseLine(line string) (Ci, error) {
 	}
 
 	return Ci{
-		Fantizi:  fantizi,
-		Jiantizi: jiantizi,
-		Pinyin:   pinyin,
-		Gloss:    gloss,
+		Fantizi:       fantizi,
+		Jiantizi:      jiantizi,
+		Pinyin:        pinyinStrToPinyin(pinyin),
+		Gloss:         gloss,
+		FormatVersion: pyVersion,
 	}, nil
 }

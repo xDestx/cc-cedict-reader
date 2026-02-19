@@ -9,6 +9,11 @@ type testItem struct {
 	Test func(*testing.T)
 }
 
+type testCase[T any] struct {
+	Sentence string
+	Expected T
+}
+
 func TestParseLine(t *testing.T) {
 	tests := []testItem{
 		{Name: "parseLine_PinyinInGloss", Test: parseLine_PinyinInGloss},
@@ -91,69 +96,142 @@ func parseLine_HandlesManyGloss(t *testing.T) {
 	}
 }
 
-type malformedLineCase struct {
-	Line string
-	// Error can include more, but must include this
-	ExpectedErrorMessage string
-}
+type malformedLineCase = testCase[string]
 
 func parseLine_Error_MalformedLine(t *testing.T) {
-	line := "浮泛 浮泛 [fu2 fan4] /to float about/(of a feeling) to show on the face/(of speech, friendship etc) shallow/vague/"
 	cases := []malformedLineCase{
 		{
-			ExpectedErrorMessage: "no gloss found",
-			Line:                 "浮泛 浮泛 [fu2 fan4] ",
+			Expected: "no gloss found",
+			Sentence: "浮泛 浮泛 [fu2 fan4] ",
 		},
 		{
-			ExpectedErrorMessage: "no pinyin found",
-			Line:                 "浮泛 浮泛 /to float about/(of a feeling) to show on the face/(of speech, friendship etc) shallow/vague/",
+			Expected: "no pinyin found",
+			Sentence: "浮泛 浮泛 /to float about/(of a feeling) to show on the face/(of speech, friendship etc) shallow/vague/",
 		},
 		{
-			ExpectedErrorMessage: "no traditional/simplified found",
-			Line:                 "浮泛 [fu2 fan4] /to float about/(of a feeling) to show on the face/(of speech, friendship etc) shallow/vague/",
+			Expected: "no traditional/simplified found",
+			Sentence: "浮泛 [fu2 fan4] /to float about/(of a feeling) to show on the face/(of speech, friendship etc) shallow/vague/",
 		},
 		{
-			ExpectedErrorMessage: "malformed pinyin v1",
-			Line:                 "浮泛 浮泛 [fu2fan4] /to float about/(of a feeling) to show on the face/(of speech, friendship etc) shallow/vague/",
+			Expected: "malformed pinyin v1",
+			Sentence: "浮泛 浮泛 [fu2fan4] /to float about/(of a feeling) to show on the face/(of speech, friendship etc) shallow/vague/",
 		},
 		{
-			ExpectedErrorMessage: "malformed pinyin v2 - ambiguity",
-			Line:                 "e人 e人 [[eren2]] /(slang) extroverted person/",
+			Expected: "malformed pinyin v2 - ambiguity",
+			Sentence: "e人 e人 [[eren2]] /(slang) extroverted person/",
 		},
 		{
-			ExpectedErrorMessage: "malformed pinyin v2 - no dots",
-			Line:                 "大衛·艾登堡 大卫·艾登堡 [[Da4wei4 · Ai4deng1bao3]] /David Attenborough (1926), British naturalist and broadcaster/",
+			Expected: "malformed pinyin v2 - no dots",
+			Sentence: "大衛·艾登堡 大卫·艾登堡 [[Da4wei4 · Ai4deng1bao3]] /David Attenborough (1926), British naturalist and broadcaster/",
 		},
 		{
-			ExpectedErrorMessage: "malformed pinyin - no diacritics",
-			Line:                 "",
+			Expected: "malformed pinyin - no diacritics",
+			Sentence: "",
 		},
+	}
+
+	for _, v := range cases {
+		_, err := ParseLine(v.Sentence)
+
+		if err == nil {
+			t.Errorf("expected error for line \"%s\".", v.Sentence)
+			continue
+		}
+
+		if err.Error() != v.Expected {
+			t.Errorf("expected error (%s), actual error (%s)", v.Expected, err.Error())
+			continue
+		}
 	}
 }
 
 func parseLine_TraditionalMatches(t *testing.T) {
+	cases := []testCase[string]{
+		{
+			Sentence: "禁酒 禁酒 [jin4 jiu3] /prohibition/ban on alcohol/dry law/",
+			Expected: "禁酒",
+		},
+		{
+			Sentence: "航海年表 航海年表 [hang2 hai3 nian2 biao3] /nautical ephemeris/",
+			Expected: "航海年表",
+		},
+		{
+			Sentence: "頭髮 头发 [tou2 fa5] /hair (on the head)/",
+			Expected: "頭髮",
+		},
+		{
+			Sentence: "顆粒歸倉 颗粒归仓 [ke1 li4 gui1 cang1] /to gather all the harvested grain into the granary; to harvest every single grain/",
+			Expected: "顆粒歸倉",
+		},
+		{
+			Sentence: "援軍 援军 [yuan2 jun1] /(military) reinforcements/",
+			Expected: "援軍",
+		},
+	}
 
+	for _, v := range cases {
+		parsed, err := ParseLine(v.Sentence)
+
+		if err != nil {
+			t.Errorf("error: %s", err.Error())
+			continue
+		}
+
+		if parsed.Fantizi != v.Expected {
+			t.Errorf("expected %s, actual %s", parsed.Fantizi, v.Expected)
+			continue
+		}
+	}
 }
 
 func parseLine_SimplifiedMatches(t *testing.T) {
+	cases := []testCase[string]{
+		{
+			Sentence: "禁酒 禁酒 [jin4 jiu3] /prohibition/ban on alcohol/dry law/",
+			Expected: "禁酒",
+		},
+		{
+			Sentence: "航海年表 航海年表 [hang2 hai3 nian2 biao3] /nautical ephemeris/",
+			Expected: "航海年表",
+		},
+		{
+			Sentence: "頭髮 头发 [tou2 fa5] /hair (on the head)/",
+			Expected: "头发",
+		},
+		{
+			Sentence: "顆粒歸倉 颗粒归仓 [ke1 li4 gui1 cang1] /to gather all the harvested grain into the granary; to harvest every single grain/",
+			Expected: "颗粒归仓",
+		},
+		{
+			Sentence: "援軍 援军 [yuan2 jun1] /(military) reinforcements/",
+			Expected: "援军",
+		},
+	}
 
+	for _, v := range cases {
+		parsed, err := ParseLine(v.Sentence)
+
+		if err != nil {
+			t.Errorf("error: %s", err.Error())
+			continue
+		}
+
+		if parsed.Jiantizi != v.Expected {
+			t.Errorf("expected %s, actual %s", parsed.Jiantizi, v.Expected)
+			continue
+		}
+	}
 }
 
-type expectedPinyinV1 struct {
-	Sentence string
-	Pinyin   []PinyinV1
-}
+type expectedPinyinV1 = testCase[[]PinyinV1]
 
-type expectedPinyinV2 struct {
-	Sentence string
-	Pinyin   []PinyinV2
-}
+type expectedPinyinV2 = testCase[[]PinyinV2]
 
 func parseLine_PinyinV1Matches(t *testing.T) {
 	cases := []expectedPinyinV1{
 		{
 			Sentence: "K人 K人 [K ren2] /(slang) to hit sb; to beat sb/",
-			Pinyin: []PinyinV1{
+			Expected: []PinyinV1{
 				{
 					Sound: "K",
 					Type:  Alphabet,
@@ -168,7 +246,7 @@ func parseLine_PinyinV1Matches(t *testing.T) {
 		},
 		{
 			Sentence: "打算 打算 [xx5] /words/",
-			Pinyin: []PinyinV1{
+			Expected: []PinyinV1{
 				{
 					Sound: "xx",
 					Type:  Unknown,
@@ -178,7 +256,7 @@ func parseLine_PinyinV1Matches(t *testing.T) {
 		},
 		{
 			Sentence: "大衛·艾登堡 大卫·艾登堡 [[Da4 wei4 · Ai4 deng1 bao3]] /David Attenborough (1926), British naturalist and broadcaster/",
-			Pinyin: []PinyinV1{
+			Expected: []PinyinV1{
 				{
 					Sound: "Da",
 					Type:  Normal,
@@ -217,7 +295,7 @@ func parseLine_PinyinV1Matches(t *testing.T) {
 		parsed, err := ParseLine(v.Sentence)
 
 		if err != nil {
-			t.Errorf(err.Error())
+			t.Errorf("error: %s", err.Error())
 			continue
 		}
 
@@ -239,7 +317,7 @@ func parseLine_PinyinV1Matches(t *testing.T) {
 				continue
 			}
 
-			if !(pyw.Word[i].Sound == v.Pinyin[i].Sound && pyw.Word[i].Tone == v.Pinyin[i].Tone && pyw.Word[i].Type == v.Pinyin[i].Type) {
+			if !(pyw.Word[i].Sound == v.Expected[i].Sound && pyw.Word[i].Tone == v.Expected[i].Tone && pyw.Word[i].Type == v.Expected[i].Type) {
 				t.Errorf("failed when checking v1 pinyin. Line \"%s\".", v.Sentence)
 				skip = true
 				continue
@@ -252,7 +330,7 @@ func parseLine_PinyinV2Matches(t *testing.T) {
 	cases := []expectedPinyinV2{
 		{
 			Sentence: "打算 打算 [[xx5]] /words/",
-			Pinyin: []PinyinV2{
+			Expected: []PinyinV2{
 				{
 					Word: []PinyinV1{
 						{
@@ -266,7 +344,7 @@ func parseLine_PinyinV2Matches(t *testing.T) {
 		},
 		{
 			Sentence: "打算 打算 [[{e}ren2]] /words/",
-			Pinyin: []PinyinV2{
+			Expected: []PinyinV2{
 				{
 					Word: []PinyinV1{
 						{
@@ -285,7 +363,7 @@ func parseLine_PinyinV2Matches(t *testing.T) {
 		},
 		{
 			Sentence: "打算 打算 [[e-ren2]] /words/",
-			Pinyin: []PinyinV2{
+			Expected: []PinyinV2{
 				{
 					Word: []PinyinV1{
 						{
@@ -304,7 +382,7 @@ func parseLine_PinyinV2Matches(t *testing.T) {
 		},
 		{
 			Sentence: "打算 打算 [[yi4ren2]] /words/",
-			Pinyin: []PinyinV2{
+			Expected: []PinyinV2{
 				{
 					Word: []PinyinV1{
 						{
@@ -323,7 +401,7 @@ func parseLine_PinyinV2Matches(t *testing.T) {
 		},
 		{
 			Sentence: "打算 打算 [[nu:3]] /words/",
-			Pinyin: []PinyinV2{
+			Expected: []PinyinV2{
 				{
 					Word: []PinyinV1{
 						{
@@ -337,7 +415,7 @@ func parseLine_PinyinV2Matches(t *testing.T) {
 		},
 		{
 			Sentence: "打算 打算 [[zen3me5 hui2shi4 r5]] /words/",
-			Pinyin: []PinyinV2{
+			Expected: []PinyinV2{
 				{
 					Word: []PinyinV1{
 						{
@@ -375,7 +453,7 @@ func parseLine_PinyinV2Matches(t *testing.T) {
 		},
 		{
 			Sentence: "K人 K人 [[K ren2]] /(slang) to hit sb; to beat sb/",
-			Pinyin: []PinyinV2{
+			Expected: []PinyinV2{
 				{
 					Word: []PinyinV1{
 						{
@@ -398,7 +476,7 @@ func parseLine_PinyinV2Matches(t *testing.T) {
 		},
 		{
 			Sentence: "3Q 3Q [[san1 Q]] /thx/",
-			Pinyin: []PinyinV2{
+			Expected: []PinyinV2{
 				{
 					Word: []PinyinV1{
 						{
@@ -421,7 +499,7 @@ func parseLine_PinyinV2Matches(t *testing.T) {
 		},
 		{
 			Sentence: "大衛·艾登堡 大卫·艾登堡 [[Da4wei4 Ai4deng1bao3]] /David Attenborough (1926), British naturalist and broadcaster/",
-			Pinyin: []PinyinV2{
+			Expected: []PinyinV2{
 				{
 					Word: []PinyinV1{
 						{
@@ -459,7 +537,7 @@ func parseLine_PinyinV2Matches(t *testing.T) {
 		},
 		{
 			Sentence: "分久必合，合久必分 分久必合，合久必分 [[fen1jiu3-bi4he2, he2jiu3-bi4fen1]] /lit. that which is long divided must unify, and that which is long unified must divide (proverb, from Romance of the Three Kingdoms 三國演義|三国演义[San1guo2 Yan3yi4])/fig. things are constantly changing/",
-			Pinyin: []PinyinV2{
+			Expected: []PinyinV2{
 				{
 					Word: []PinyinV1{
 						{
@@ -515,7 +593,7 @@ func parseLine_PinyinV2Matches(t *testing.T) {
 		parsed, err := ParseLine(v.Sentence)
 
 		if err != nil {
-			t.Errorf(err.Error())
+			t.Errorf("error: %s", err.Error())
 			continue
 		}
 
@@ -524,10 +602,290 @@ func parseLine_PinyinV2Matches(t *testing.T) {
 			continue
 		}
 
-		//TODO assert correct
+		if len(v.Expected) != len(parsed.Pinyin) {
+			t.Errorf("expected pinyin length to be %d, was %d", len(v.Expected), len(parsed.Pinyin))
+			continue
+		}
+
+		for i := 0; i < len(parsed.Pinyin); i++ {
+			if len(v.Expected[i].Word) != len(parsed.Pinyin[i].Word) {
+				t.Errorf("expected pinyin word %d length to be %d, was %d", i, len(v.Expected), len(parsed.Pinyin))
+				continue
+			}
+
+			for j := 0; j < len(parsed.Pinyin[i].Word); j++ {
+				if !pyEq(parsed.Pinyin[i].Word[j], v.Expected[i].Word[j]) {
+					t.Errorf("expected %s, actual %s", parsed.Pinyin[i].Word, v.Expected[i].Word[j])
+					i = len(parsed.Pinyin)
+					break
+				}
+			}
+		}
 	}
 }
 
-func parseLine_FullMatches(t *testing.T) {
+func pyEq(a PinyinV1, b PinyinV1) bool {
+	return a.Sound == b.Sound && a.Tone == b.Tone && a.Type == b.Type
+}
 
+func parseLine_FullMatches(t *testing.T) {
+	cases := []testCase[Ci]{
+		{
+			Sentence: "損人不利己 损人不利己 [sun3 ren2 bu4 li4 ji3] /to harm others without benefiting oneself (idiom)/",
+			Expected: Ci{
+				Fantizi:  "損人不利己",
+				Jiantizi: "损人不利己",
+				Pinyin: []PinyinV2{
+					{
+						Word: []PinyinV1{
+							{
+								Sound: "sun",
+								Tone:  T3,
+								Type:  Normal,
+							},
+						},
+					},
+					{
+						Word: []PinyinV1{
+							{
+								Sound: "ren",
+								Tone:  T2,
+								Type:  Normal,
+							},
+						},
+					},
+					{
+						Word: []PinyinV1{
+							{
+								Sound: "bu",
+								Tone:  T4,
+								Type:  Normal,
+							},
+						},
+					},
+					{
+						Word: []PinyinV1{
+							{
+								Sound: "li",
+								Tone:  T4,
+								Type:  Normal,
+							},
+						},
+					},
+					{
+						Word: []PinyinV1{
+							{
+								Sound: "ji",
+								Tone:  T3,
+								Type:  Normal,
+							},
+						},
+					},
+				},
+				PinyinRaw:     "sun3 ren2 bu4 li4 ji3",
+				Gloss:         []string{"to harm others without benefiting oneself (idiom)"},
+				FormatVersion: V1,
+			},
+		},
+		{
+			Sentence: "眼觀四面，耳聽八方 眼观四面，耳听八方 [yan3 guan1 si4 mian4 , er3 ting1 ba1 fang1] /lit. the eyes observe all sides and the ears listen in all directions (idiom)/fig. to be observant and alert/",
+			Expected: Ci{
+				Fantizi:  "眼觀四面，耳聽八方",
+				Jiantizi: "眼观四面，耳听八方",
+				Pinyin: []PinyinV2{
+					{
+						Word: []PinyinV1{
+							{
+								Sound: "yan",
+								Tone:  T3,
+								Type:  Normal,
+							},
+						},
+					},
+					{
+						Word: []PinyinV1{
+							{
+								Sound: "guan",
+								Tone:  T1,
+								Type:  Normal,
+							},
+						},
+					},
+					{
+						Word: []PinyinV1{
+							{
+								Sound: "si",
+								Tone:  T4,
+								Type:  Normal,
+							},
+						},
+					},
+					{
+						Word: []PinyinV1{
+							{
+								Sound: "mian",
+								Tone:  T4,
+								Type:  Normal,
+							},
+						},
+					},
+					{
+						Word: []PinyinV1{
+							{
+								Sound: ",",
+								Tone:  None,
+								Type:  Special,
+							},
+						},
+					},
+					{
+						Word: []PinyinV1{
+							{
+								Sound: "er",
+								Tone:  T3,
+								Type:  Normal,
+							},
+						},
+					},
+					{
+						Word: []PinyinV1{
+							{
+								Sound: "ting",
+								Tone:  T1,
+								Type:  Normal,
+							},
+						},
+					},
+					{
+						Word: []PinyinV1{
+							{
+								Sound: "ba",
+								Tone:  T1,
+								Type:  Normal,
+							},
+						},
+					},
+					{
+						Word: []PinyinV1{
+							{
+								Sound: "fang",
+								Tone:  T1,
+								Type:  Normal,
+							},
+						},
+					},
+				},
+				PinyinRaw:     "yan3 guan1 si4 mian4 , er3 ting1 ba1 fang1",
+				Gloss:         []string{"lit. the eyes observe all sides and the ears listen in all directions (idiom)", "fig. to be observant and alert"},
+				FormatVersion: V1,
+			},
+		},
+		{
+			Sentence: "薄命 薄命 [bo2 ming4] /to be born under an unlucky star (usu. of women)/to be born unlucky/",
+			Expected: Ci{
+				Fantizi:  "薄命",
+				Jiantizi: "薄命",
+				Pinyin: []PinyinV2{
+					{
+						Word: []PinyinV1{
+							{
+								Sound: "bo",
+								Tone:  T2,
+								Type:  Normal,
+							},
+						},
+					},
+					{
+						Word: []PinyinV1{
+							{
+								Sound: "ming",
+								Tone:  T4,
+								Type:  Normal,
+							},
+						},
+					},
+				},
+				PinyinRaw:     "bo2 ming4",
+				Gloss:         []string{"to be born under an unlucky star (usu. of women)", "to be born unlucky"},
+				FormatVersion: V1,
+			},
+		},
+		{
+			Sentence: "皮實 皮实 [[pi2shi5]] /(of things) durable/(of people) sturdy; tough/",
+			Expected: Ci{
+				Fantizi:  "皮實",
+				Jiantizi: "皮实",
+				Pinyin: []PinyinV2{
+					{
+						Word: []PinyinV1{
+							{
+								Sound: "pi",
+								Tone:  T2,
+								Type:  Normal,
+							},
+							{
+								Sound: "shi",
+								Tone:  T5,
+								Type:  Normal,
+							},
+						},
+					},
+				},
+				PinyinRaw:     "pi2shi5",
+				Gloss:         []string{"(of things) durable", "(of people) sturdy; tough"},
+				FormatVersion: V2,
+			},
+		},
+	}
+
+	for _, v := range cases {
+		parsed, err := ParseLine(v.Sentence)
+
+		if err != nil {
+			t.Errorf("error: %s", err.Error())
+			continue
+		}
+
+		if !ciEq(v.Expected, parsed) {
+			t.Errorf("expected %s, got %s", v.Expected, parsed)
+			continue
+		}
+	}
+}
+
+func ciEq(a Ci, b Ci) bool {
+	if a.Fantizi != b.Fantizi {
+		return false
+	}
+	if a.Jiantizi != b.Jiantizi {
+		return false
+	}
+	if a.PinyinRaw != b.PinyinRaw {
+		return false
+	}
+	if a.FormatVersion != b.FormatVersion {
+		return false
+	}
+	if len(a.Gloss) != len(b.Gloss) {
+		return false
+	}
+	if len(a.Pinyin) != len(b.Pinyin) {
+		return false
+	}
+	for i := 0; i < len(a.Pinyin); i++ {
+		pyA := a.Pinyin[i]
+		pyB := b.Pinyin[i]
+		if len(pyA.Word) != len(pyB.Word) {
+			return false
+		}
+		for j := 0; j < len(pyA.Word); j++ {
+			pyAWJ := pyA.Word[j]
+			pyBWJ := pyB.Word[j]
+
+			if !pyEq(pyAWJ, pyBWJ) {
+				return false
+			}
+		}
+	}
+	return true
 }

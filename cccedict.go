@@ -1,7 +1,10 @@
 package cccedictparser
 
 import (
+	"errors"
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -83,8 +86,106 @@ func (ci Ci) String() string {
 	return fmt.Sprintf("Ci{Fantizi:\"%s\", Jiantizi:\"%s\", Pinyin:%s, PinyinRaw:\"%s\", Gloss:[%s], FormatVersion:%s}", ci.Fantizi, ci.Jiantizi, "", strings.Join(ci.Gloss, ", "), ci.PinyinRaw, ci.FormatVersion)
 }
 
-func pinyinStrToPinyin(pys string) []PinyinV2 {
-	return []PinyinV2{}
+func pinyinV1StrToPinyin(pys string) ([]PinyinV2, error) {
+	items := strings.Split(pys, " ")
+
+	pyItems := []PinyinV2{}
+
+	//ci2 shu1
+	for _, v := range items {
+		//ci2
+		runes := []rune{}
+		for _, c := range v {
+			runes = append(runes, c)
+		}
+
+		py, err := getPyV1ForPySegmentRunes(runes)
+
+		if err != nil {
+			return []PinyinV2{}, err
+		}
+
+		pyItems = append(pyItems, PinyinV2{
+			Word: []PinyinV1{py},
+		})
+	}
+
+	return pyItems, nil
+}
+
+func getPyV1ForPySegmentRunes(runes []rune) (PinyinV1, error) {
+	hasTone := false
+	var tone Tone
+	if toneVal, err := strconv.Atoi(string(runes[len(runes)-1])); err == nil && tone <= 5 && tone >= 1 {
+		hasTone = true
+		tone = uint8(toneVal)
+	}
+
+	var sound string
+	if !hasTone {
+		sound = string(runes)
+	} else {
+		sound = string(runes[:len(runes)-1])
+	}
+
+	isAlphabetic, err := regexp.MatchString(`[a-zA-Z]`, sound)
+
+	var t PinyinType
+	if err != nil {
+		return PinyinV1{}, errors.New("malformed pinyin v1")
+	} else if isAlphabetic && tone != None {
+		t = Normal
+	} else if isAlphabetic {
+		t = Alphabet
+	} else {
+		t = Special
+	}
+
+	py := PinyinV1{
+		Sound: sound,
+		Tone:  tone,
+		Type:  t,
+	}
+
+	return py, nil
+}
+
+func pinyinV2StrToPinyin(pys string) ([]PinyinV2, error) {
+	words := strings.Split(pys, " ")
+
+	v2List := []PinyinV2{}
+
+	//Ping2guo3 shou3ji1
+	for _, word := range words {
+		wordsForPyV2 := []PinyinV1{}
+
+		//Ping2guo3
+		runesBuilder := []rune{}
+		pyItems := [][]rune{}
+		for _, c := range word {
+			runesBuilder = append(runesBuilder, c)
+			if _, err := strconv.Atoi(string(c)); err != nil {
+				pyItems = append(pyItems, runesBuilder)
+				runesBuilder = []rune{}
+			}
+		}
+
+		for _, pyItem := range pyItems {
+			item, err := getPyV1ForPySegmentRunes(pyItem)
+
+			if err != nil {
+				return []PinyinV2{}, err
+			}
+
+			wordsForPyV2 = append(wordsForPyV2, item)
+		}
+
+		v2List = append(v2List, PinyinV2{
+			Word: wordsForPyV2,
+		})
+	}
+
+	return v2List, nil
 }
 
 // Traditional Simplified [[pin1yin1]] /gloss; gloss; .../gloss; gloss; .../
@@ -163,10 +264,22 @@ func ParseLine(line string) (Ci, error) {
 		}
 	}
 
+	var py []PinyinV2
+	var err error
+	if pyVersion == V1 {
+		py, err = pinyinV1StrToPinyin(pinyin)
+	} else {
+		py, err = pinyinV2StrToPinyin(pinyin)
+	}
+
+	if err != nil {
+		return Ci{}, err
+	}
+
 	return Ci{
 		Fantizi:       fantizi,
 		Jiantizi:      jiantizi,
-		Pinyin:        pinyinStrToPinyin(pinyin),
+		Pinyin:        py,
 		Gloss:         gloss,
 		FormatVersion: pyVersion,
 	}, nil

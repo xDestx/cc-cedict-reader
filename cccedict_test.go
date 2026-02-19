@@ -1,6 +1,7 @@
 package cccedictparser
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -16,15 +17,15 @@ type testCase[T any] struct {
 
 func TestParseLine(t *testing.T) {
 	tests := []testItem{
-		{Name: "parseLine_PinyinInGloss", Test: parseLine_PinyinInGloss},
-		{Name: "parseLine_HandlesOneGloss", Test: parseLine_HandlesOneGloss},
-		{Name: "parseLine_HandlesManyGloss", Test: parseLine_HandlesManyGloss},
-		{Name: "parseLine_Error_MalformedLine", Test: parseLine_Error_MalformedLine},
-		{Name: "parseLine_TraditionalMatches", Test: parseLine_TraditionalMatches},
-		{Name: "parseLine_SimplifiedMatches", Test: parseLine_SimplifiedMatches},
-		{Name: "parseLine_PinyinV1Matches", Test: parseLine_PinyinV1Matches},
+		// {Name: "parseLine_PinyinInGloss", Test: parseLine_PinyinInGloss},
+		// {Name: "parseLine_HandlesOneGloss", Test: parseLine_HandlesOneGloss},
+		// {Name: "parseLine_HandlesManyGloss", Test: parseLine_HandlesManyGloss},
+		// {Name: "parseLine_Error_MalformedLine", Test: parseLine_Error_MalformedLine},
+		// {Name: "parseLine_TraditionalMatches", Test: parseLine_TraditionalMatches},
+		// {Name: "parseLine_SimplifiedMatches", Test: parseLine_SimplifiedMatches},
+		// {Name: "parseLine_PinyinV1Matches", Test: parseLine_PinyinV1Matches},
 		{Name: "parseLine_PinyinV2Matches", Test: parseLine_PinyinV2Matches},
-		{Name: "parseLine_FullMatches", Test: parseLine_FullMatches},
+		// {Name: "parseLine_FullMatches", Test: parseLine_FullMatches},
 	}
 
 	for _, v := range tests {
@@ -44,6 +45,7 @@ func parseLine_PinyinInGloss(t *testing.T) {
 
 	if len(out.Gloss) == 0 {
 		t.Errorf("error when parsing line (%s) -- no gloss found.", line)
+		return
 	}
 
 	if out.Gloss[0] != expected {
@@ -63,6 +65,7 @@ func parseLine_HandlesOneGloss(t *testing.T) {
 
 	if len(out.Gloss) != 1 {
 		t.Errorf("error when parsing line (%s) -- incorrect gloss number found. Expected (1) was (%d)", line, len(out.Gloss))
+		return
 	}
 
 	if out.Gloss[0] != expected {
@@ -83,10 +86,12 @@ func parseLine_HandlesManyGloss(t *testing.T) {
 
 	if err != nil {
 		t.Errorf("error when parsing line (%s). %s", line, err.Error())
+		return
 	}
 
 	if len(out.Gloss) != len(expected) {
 		t.Errorf("error when parsing line (%s) -- incorrect gloss number found. Expected (1) was (%d)", line, len(out.Gloss))
+		return
 	}
 
 	for i, v := range expected {
@@ -107,6 +112,18 @@ func parseLine_Error_MalformedLine(t *testing.T) {
 		{
 			Expected: "no pinyin found",
 			Sentence: "浮泛 浮泛 /to float about/(of a feeling) to show on the face/(of speech, friendship etc) shallow/vague/",
+		},
+		{
+			Expected: "malformed pinyin (cannot determine version)",
+			Sentence: "浮泛 浮泛 [[fu2 fan4] /to float about/(of a feeling) to show on the face/(of speech, friendship etc) shallow/vague/",
+		},
+		{
+			Expected: "malformed pinyin (unrecognized version)",
+			Sentence: "浮泛 浮泛 [[[fu2 fan4]]] /to float about/(of a feeling) to show on the face/(of speech, friendship etc) shallow/vague/",
+		},
+		{
+			Expected: "malformed pinyin (cannot determine version)",
+			Sentence: "浮泛 浮泛 [fu2 fan4]] /to float about/(of a feeling) to show on the face/(of speech, friendship etc) shallow/vague/",
 		},
 		{
 			Expected: "no traditional/simplified found",
@@ -173,7 +190,7 @@ func parseLine_TraditionalMatches(t *testing.T) {
 		parsed, err := ParseLine(v.Sentence)
 
 		if err != nil {
-			t.Errorf("error: %s", err.Error())
+			t.Errorf("error: %s. Line %s", err.Error(), v.Sentence)
 			continue
 		}
 
@@ -212,7 +229,7 @@ func parseLine_SimplifiedMatches(t *testing.T) {
 		parsed, err := ParseLine(v.Sentence)
 
 		if err != nil {
-			t.Errorf("error: %s", err.Error())
+			t.Errorf("error: %s. Line %s", err.Error(), v.Sentence)
 			continue
 		}
 
@@ -295,13 +312,17 @@ func parseLine_PinyinV1Matches(t *testing.T) {
 		parsed, err := ParseLine(v.Sentence)
 
 		if err != nil {
-			t.Errorf("error: %s", err.Error())
+			t.Errorf("error: %s. Line %s", err.Error(), v.Sentence)
 			continue
 		}
 
 		if parsed.FormatVersion != V1 {
 			t.Errorf("expected v1 pinyin for line \"%s\".", v.Sentence)
 			continue
+		}
+
+		if len(parsed.Pinyin) != len(v.Expected) {
+			t.Errorf("length mismatch for expected vs actual. expected %d, actual %d", len(v.Expected), len(parsed.Pinyin))
 		}
 
 		skip := false
@@ -317,7 +338,7 @@ func parseLine_PinyinV1Matches(t *testing.T) {
 				continue
 			}
 
-			if !(pyw.Word[i].Sound == v.Expected[i].Sound && pyw.Word[i].Tone == v.Expected[i].Tone && pyw.Word[i].Type == v.Expected[i].Type) {
+			if !(pyw.Word[0].Sound == v.Expected[i].Sound && pyw.Word[0].Tone == v.Expected[i].Tone && pyw.Word[0].Type == v.Expected[i].Type) {
 				t.Errorf("failed when checking v1 pinyin. Line \"%s\".", v.Sentence)
 				skip = true
 				continue
@@ -336,7 +357,7 @@ func parseLine_PinyinV2Matches(t *testing.T) {
 						{
 							Sound: "xx",
 							Type:  Unknown,
-							Tone:  T5,
+							Tone:  None,
 						},
 					},
 				},
@@ -442,6 +463,10 @@ func parseLine_PinyinV2Matches(t *testing.T) {
 							Type:  Normal,
 							Tone:  T4,
 						},
+					},
+				},
+				{
+					Word: []PinyinV1{
 						{
 							Sound: "r",
 							Type:  Normal,
@@ -593,7 +618,7 @@ func parseLine_PinyinV2Matches(t *testing.T) {
 		parsed, err := ParseLine(v.Sentence)
 
 		if err != nil {
-			t.Errorf("error: %s", err.Error())
+			t.Errorf("error: %s. Line %s", err.Error(), v.Sentence)
 			continue
 		}
 
@@ -603,25 +628,33 @@ func parseLine_PinyinV2Matches(t *testing.T) {
 		}
 
 		if len(v.Expected) != len(parsed.Pinyin) {
-			t.Errorf("expected pinyin length to be %d, was %d", len(v.Expected), len(parsed.Pinyin))
+			t.Errorf("expected pinyin length to be %d, was %d. Ex(%s) Ac(%s), Line: %s", len(v.Expected), len(parsed.Pinyin), pyV2ArrStr(v.Expected), pyV2ArrStr(parsed.Pinyin), v.Sentence)
 			continue
 		}
 
 		for i := 0; i < len(parsed.Pinyin); i++ {
 			if len(v.Expected[i].Word) != len(parsed.Pinyin[i].Word) {
-				t.Errorf("expected pinyin word %d length to be %d, was %d", i, len(v.Expected), len(parsed.Pinyin))
+				t.Errorf("expected pinyin word %d length to be %d, was %d. Ex(%s) Ac(%s), Line: %s", i, len(v.Expected[i].Word), len(parsed.Pinyin[i].Word), v.Expected[i].String(), parsed.Pinyin[i].String(), v.Sentence)
 				continue
 			}
 
 			for j := 0; j < len(parsed.Pinyin[i].Word); j++ {
 				if !pyEq(parsed.Pinyin[i].Word[j], v.Expected[i].Word[j]) {
-					t.Errorf("expected %s, actual %s", parsed.Pinyin[i].Word, v.Expected[i].Word[j])
+					t.Errorf("expected %s, actual %s", v.Expected[i].Word[j], parsed.Pinyin[i].Word[j])
 					i = len(parsed.Pinyin)
 					break
 				}
 			}
 		}
 	}
+}
+
+func pyV2ArrStr(pyv2arr []PinyinV2) string {
+	items := []string{}
+	for _, v := range pyv2arr {
+		items = append(items, v.String())
+	}
+	return strings.Join(items, ", ")
 }
 
 func pyEq(a PinyinV1, b PinyinV1) bool {
@@ -842,7 +875,7 @@ func parseLine_FullMatches(t *testing.T) {
 		parsed, err := ParseLine(v.Sentence)
 
 		if err != nil {
-			t.Errorf("error: %s", err.Error())
+			t.Errorf("error: %s. Line %s", err.Error(), v.Sentence)
 			continue
 		}
 

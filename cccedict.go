@@ -63,9 +63,9 @@ const section_gloss = 7
 
 // true if not out of bounds
 // false if out of bounds
-func tryPeak(arr []string, index int) (string, bool) {
+func tryPeak(arr []rune, index int) (rune, bool) {
 	if index >= len(arr) {
-		return "", false
+		return 0, false
 	}
 	return arr[index], true
 }
@@ -116,7 +116,20 @@ func pinyinV1StrToPinyin(pys string) ([]PinyinV2, error) {
 func getPyV1ForPySegmentRunes(runes []rune) (PinyinV1, error) {
 	hasTone := false
 	var tone Tone
-	if toneVal, err := strconv.Atoi(string(runes[len(runes)-1])); err == nil && tone <= 5 && tone >= 1 {
+
+	if len(runes) == 0 {
+		return PinyinV1{}, errors.New("no runes provided")
+	}
+
+	if string(runes) == "xx5" {
+		return PinyinV1{
+			Sound: "xx",
+			Tone:  None,
+			Type:  Unknown,
+		}, nil
+	}
+
+	if toneVal, err := strconv.Atoi(string(runes[len(runes)-1])); err == nil && toneVal <= 5 && toneVal >= 1 {
 		hasTone = true
 		tone = uint8(toneVal)
 	}
@@ -126,6 +139,17 @@ func getPyV1ForPySegmentRunes(runes []rune) (PinyinV1, error) {
 		sound = string(runes)
 	} else {
 		sound = string(runes[:len(runes)-1])
+	}
+
+	startsWithBrackets := strings.HasPrefix(sound, "{")
+	endsWithBrakets := strings.HasSuffix(sound, "}")
+
+	if startsWithBrackets != endsWithBrakets {
+		return PinyinV1{}, errors.New("malformed pinyin")
+	}
+
+	if strings.HasSuffix(sound, "-") {
+		sound = sound[:len(sound)-1]
 	}
 
 	isAlphabetic, err := regexp.MatchString(`[a-zA-Z]`, sound)
@@ -141,8 +165,10 @@ func getPyV1ForPySegmentRunes(runes []rune) (PinyinV1, error) {
 		t = Special
 	}
 
+	finSound := strings.Replace(sound, "u:", "v", -1)
+
 	py := PinyinV1{
-		Sound: sound,
+		Sound: finSound,
 		Tone:  tone,
 		Type:  t,
 	}
@@ -162,12 +188,35 @@ func pinyinV2StrToPinyin(pys string) ([]PinyinV2, error) {
 		//Ping2guo3
 		runesBuilder := []rune{}
 		pyItems := [][]rune{}
+		openBracket := false
 		for _, c := range word {
 			runesBuilder = append(runesBuilder, c)
-			if _, err := strconv.Atoi(string(c)); err != nil {
-				pyItems = append(pyItems, runesBuilder)
-				runesBuilder = []rune{}
+			sc := string(c)
+
+			if sc == "{" {
+				openBracket = true
 			}
+
+			_, err := strconv.Atoi(sc)
+
+			if err == nil || (openBracket && sc == "}") || sc == "-" {
+				removeSuffix := 0
+				if openBracket || sc == "-" {
+					removeSuffix = 1
+				}
+				removePrefix := 0
+				if openBracket {
+					removePrefix = 1
+				}
+				pyItems = append(pyItems, runesBuilder[removePrefix:len(runesBuilder)-removeSuffix])
+				runesBuilder = []rune{}
+				openBracket = false
+			}
+		}
+
+		if len(runesBuilder) != 0 {
+			pyItems = append(pyItems, runesBuilder)
+			runesBuilder = []rune{}
 		}
 
 		for _, pyItem := range pyItems {
@@ -190,10 +239,9 @@ func pinyinV2StrToPinyin(pys string) ([]PinyinV2, error) {
 
 // Traditional Simplified [[pin1yin1]] /gloss; gloss; .../gloss; gloss; .../
 func ParseLine(line string) (Ci, error) {
-	chars := strings.Split(line, "")
-
 	traditionalDelimit := " "
 	simplifiedDelimit := " "
+	pinyinStart := "["
 	pinyinEnd := "]"
 
 	glossStart := "/"
@@ -207,8 +255,16 @@ func ParseLine(line string) (Ci, error) {
 	currentSection := section_traditional
 
 	pyVersion := V1
+	pyOpenBracketCount := 0
+	pyCloseBracketCount := 0
 
-	for i, r := range line {
+	lineRunes := []rune{}
+
+	for _, r := range line {
+		lineRunes = append(lineRunes, r)
+	}
+
+	for i, r := range lineRunes {
 
 		if currentSection == section_traditional {
 
@@ -232,14 +288,19 @@ func ParseLine(line string) (Ci, error) {
 
 		} else if currentSection == section_transition_pinyin {
 
-			if next, ok := tryPeak(chars, i+1); ok && string(r) == "[" {
-				if next != "[" {
+			if string(r) == pinyinStart {
+				pyOpenBracketCount++
+			}
+
+			if next, ok := tryPeak(lineRunes, i+1); ok && string(r) == pinyinStart {
+				if string(next) != pinyinStart {
 					currentSection = section_pinyin
 				}
 			}
 
 		} else if currentSection == section_pinyin {
 			if string(r) == pinyinEnd {
+				pyCloseBracketCount++
 				pinyin = builder.String()
 				builder.Reset()
 				currentSection = section_transition_gloss
@@ -248,6 +309,9 @@ func ParseLine(line string) (Ci, error) {
 			}
 		} else if currentSection == section_transition_gloss {
 			if string(r) == pinyinEnd || string(r) == " " {
+				if string(r) == pinyinEnd {
+					pyCloseBracketCount++
+				}
 				//nothing
 			} else if string(r) == glossStart {
 				currentSection = section_gloss
@@ -262,6 +326,19 @@ func ParseLine(line string) (Ci, error) {
 				builder.WriteRune(r)
 			}
 		}
+	}
+
+	if pyOpenBracketCount != pyCloseBracketCount {
+		return Ci{}, fmt.Errorf("malformed pinyin (cannot determine version: %d %d)", pyOpenBracketCount, pyCloseBracketCount)
+	}
+
+	switch pyOpenBracketCount {
+	case 1:
+		pyVersion = V1
+	case 2:
+		pyVersion = V2
+	default:
+		return Ci{}, errors.New("malformed pinyin (unrecognized version)")
 	}
 
 	var py []PinyinV2

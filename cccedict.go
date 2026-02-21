@@ -3,7 +3,6 @@ package cccedictparser
 import (
 	"errors"
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -163,6 +162,42 @@ func pinyinV1StrToPinyin(pys string) ([]PinyinV2, error) {
 	return pyItems, nil
 }
 
+func getTone(s rune) (Tone, error) {
+
+	switch s {
+	case 49:
+		return T1, nil
+	case 50:
+		return T2, nil
+	case 51:
+		return T3, nil
+	case 52:
+		return T4, nil
+	case 53:
+		return T5, nil
+	default:
+		return None, errors.New("unrecognized tone")
+	}
+}
+
+func soundIsAlphabetic(str string) bool {
+	for _, v := range str {
+		if !((v >= 97 && v <= 122) || (v >= 65 && v <= 90)) {
+			return false
+		}
+	}
+	return true
+}
+
+func soundHasNumber(str string) bool {
+	for _, v := range str {
+		if v >= 48 && v <= 57 {
+			return true
+		}
+	}
+	return false
+}
+
 func getPyV1ForPySegmentRunes(runes []rune) (PinyinV1, error) {
 	hasTone := false
 	var tone Tone
@@ -179,9 +214,9 @@ func getPyV1ForPySegmentRunes(runes []rune) (PinyinV1, error) {
 		}, nil
 	}
 
-	if toneVal, err := strconv.Atoi(string(runes[len(runes)-1])); err == nil && toneVal <= 5 && toneVal >= 1 {
+	if toneVal, err := getTone(runes[len(runes)-1]); err == nil {
 		hasTone = true
-		tone = uint8(toneVal)
+		tone = toneVal
 	}
 
 	var sound string
@@ -204,16 +239,9 @@ func getPyV1ForPySegmentRunes(runes []rune) (PinyinV1, error) {
 		sound = ns
 	}
 
-	isAlphabetic, err := regexp.MatchString(`^[a-zA-Z]+$`, sound)
-	if err != nil {
-		return PinyinV1{}, errors.New("malformed pinyin v1")
-	}
+	isAlphabetic := soundIsAlphabetic(sound)
 
-	hasNumber, err := regexp.MatchString(`\d`, sound)
-
-	if err != nil {
-		return PinyinV1{}, errors.New("malformed pinyin v1")
-	}
+	hasNumber := soundHasNumber(sound)
 
 	if hasNumber && len(sound) != 1 {
 		return PinyinV1{}, errors.New("malformed pinyin v1")

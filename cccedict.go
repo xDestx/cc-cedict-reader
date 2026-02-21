@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"golang.org/x/text/unicode/norm"
 )
 
 type FormatVersion = string
@@ -160,12 +162,23 @@ func getPyV1ForPySegmentRunes(runes []rune) (PinyinV1, error) {
 		sound = ns
 	}
 
-	isAlphabetic, err := regexp.MatchString(`[a-zA-Z]`, sound)
-
-	var t PinyinType
+	isAlphabetic, err := regexp.MatchString(`^[a-zA-Z]+$`, sound)
 	if err != nil {
 		return PinyinV1{}, errors.New("malformed pinyin v1")
-	} else if isAlphabetic && tone != None {
+	}
+
+	hasNumber, err := regexp.MatchString(`\d`, sound)
+
+	if err != nil {
+		return PinyinV1{}, errors.New("malformed pinyin v1")
+	}
+
+	if hasNumber && len(sound) != 1 {
+		return PinyinV1{}, errors.New("malformed pinyin v1")
+	}
+
+	var t PinyinType
+	if isAlphabetic && tone != None {
 		t = Normal
 	} else if isAlphabetic {
 		t = Alphabet
@@ -241,6 +254,10 @@ func pinyinV2StrToPinyin(pys string) ([]PinyinV2, error) {
 				return []PinyinV2{}, err
 			}
 
+			if item.Sound == `·` {
+				return []PinyinV2{}, errors.New("malformed pinyin v2 - no dots")
+			}
+
 			wordsForPyV2 = append(wordsForPyV2, item)
 		}
 
@@ -283,6 +300,10 @@ func ParseLine(line string) (Ci, error) {
 
 		if currentSection == section_traditional {
 
+			if string(r) == pinyinStart {
+				return Ci{}, errors.New("found pinyin section before completing traditional section")
+			}
+
 			if string(r) == traditionalDelimit {
 				fantizi = builder.String()
 				builder.Reset()
@@ -293,6 +314,10 @@ func ParseLine(line string) (Ci, error) {
 
 		} else if currentSection == section_simplified {
 
+			if string(r) == pinyinStart {
+				return Ci{}, errors.New("found pinyin section before completing simplified section")
+			}
+
 			if string(r) == simplifiedDelimit {
 				jiantizi = builder.String()
 				builder.Reset()
@@ -302,6 +327,10 @@ func ParseLine(line string) (Ci, error) {
 			}
 
 		} else if currentSection == section_transition_pinyin {
+
+			if string(r) == glossStart {
+				return Ci{}, errors.New("found gloss section before pinyin section")
+			}
 
 			if string(r) == pinyinStart {
 				pyOpenBracketCount++
@@ -344,7 +373,7 @@ func ParseLine(line string) (Ci, error) {
 	}
 
 	if pyOpenBracketCount != pyCloseBracketCount {
-		return Ci{}, fmt.Errorf("malformed pinyin (cannot determine version: %d %d)", pyOpenBracketCount, pyCloseBracketCount)
+		return Ci{}, fmt.Errorf("malformed pinyin (cannot determine version) (%d %d)", pyOpenBracketCount, pyCloseBracketCount)
 	}
 
 	switch pyOpenBracketCount {
@@ -366,6 +395,25 @@ func ParseLine(line string) (Ci, error) {
 
 	if err != nil {
 		return Ci{}, err
+	}
+
+	if fantizi == "" || jiantizi == "" {
+		return Ci{}, errors.New("no traditional/simplified found")
+	}
+
+	if pinyin == "" || len(py) == 0 {
+		return Ci{}, errors.New("no pinyin found")
+	}
+
+	if len(gloss) == 0 {
+		return Ci{}, errors.New("no gloss found")
+	}
+
+	for _, v := range pinyin {
+		if string(norm.NFD.Bytes([]byte(string(v)))) != string(v) {
+			// Really struggling to detect this
+			return Ci{}, errors.New("malformed pinyin - no diacritics")
+		}
 	}
 
 	return Ci{

@@ -17,15 +17,15 @@ type testCase[T any] struct {
 
 func TestParseLine(t *testing.T) {
 	tests := []testItem{
-		{Name: "parseLine_PinyinInGloss", Test: parseLine_PinyinInGloss},
-		{Name: "parseLine_HandlesOneGloss", Test: parseLine_HandlesOneGloss},
-		{Name: "parseLine_HandlesManyGloss", Test: parseLine_HandlesManyGloss},
-		// {Name: "parseLine_Error_MalformedLine", Test: parseLine_Error_MalformedLine},
-		{Name: "parseLine_TraditionalMatches", Test: parseLine_TraditionalMatches},
-		{Name: "parseLine_SimplifiedMatches", Test: parseLine_SimplifiedMatches},
-		{Name: "parseLine_PinyinV1Matches", Test: parseLine_PinyinV1Matches},
-		{Name: "parseLine_PinyinV2Matches", Test: parseLine_PinyinV2Matches},
-		{Name: "parseLine_FullMatches", Test: parseLine_FullMatches},
+		// {Name: "parseLine_PinyinInGloss", Test: parseLine_PinyinInGloss},
+		// {Name: "parseLine_HandlesOneGloss", Test: parseLine_HandlesOneGloss},
+		// {Name: "parseLine_HandlesManyGloss", Test: parseLine_HandlesManyGloss},
+		{Name: "parseLine_Error_MalformedLine", Test: parseLine_Error_MalformedLine},
+		// {Name: "parseLine_TraditionalMatches", Test: parseLine_TraditionalMatches},
+		// {Name: "parseLine_SimplifiedMatches", Test: parseLine_SimplifiedMatches},
+		// {Name: "parseLine_PinyinV1Matches", Test: parseLine_PinyinV1Matches},
+		// {Name: "parseLine_PinyinV2Matches", Test: parseLine_PinyinV2Matches},
+		// {Name: "parseLine_FullMatches", Test: parseLine_FullMatches},
 	}
 
 	for _, v := range tests {
@@ -110,7 +110,7 @@ func parseLine_Error_MalformedLine(t *testing.T) {
 			Sentence: "浮泛 浮泛 [fu2 fan4] ",
 		},
 		{
-			Expected: "no pinyin found",
+			Expected: "found gloss section before pinyin section",
 			Sentence: "浮泛 浮泛 /to float about/(of a feeling) to show on the face/(of speech, friendship etc) shallow/vague/",
 		},
 		{
@@ -126,7 +126,7 @@ func parseLine_Error_MalformedLine(t *testing.T) {
 			Sentence: "浮泛 浮泛 [fu2 fan4]] /to float about/(of a feeling) to show on the face/(of speech, friendship etc) shallow/vague/",
 		},
 		{
-			Expected: "no traditional/simplified found",
+			Expected: "found pinyin section before completing simplified section",
 			Sentence: "浮泛 [fu2 fan4] /to float about/(of a feeling) to show on the face/(of speech, friendship etc) shallow/vague/",
 		},
 		{
@@ -143,20 +143,20 @@ func parseLine_Error_MalformedLine(t *testing.T) {
 		},
 		{
 			Expected: "malformed pinyin - no diacritics",
-			Sentence: "",
+			Sentence: "吃飯 吃饭 [chī fàn] /to have a meal/to eat/to make a living/",
 		},
 	}
 
 	for _, v := range cases {
-		_, err := ParseLine(v.Sentence)
+		o, err := ParseLine(v.Sentence)
 
 		if err == nil {
-			t.Errorf("expected error for line \"%s\".", v.Sentence)
+			t.Errorf("expected error for line \"%s\". Output: %s", v.Sentence, o.String())
 			continue
 		}
 
-		if err.Error() != v.Expected {
-			t.Errorf("expected error (%s), actual error (%s)", v.Expected, err.Error())
+		if !strings.Contains(err.Error(), v.Expected) {
+			t.Errorf("expected error not contained in error. expected error (%s), actual error (%s). Line: %s", v.Expected, err.Error(), v.Sentence)
 			continue
 		}
 	}

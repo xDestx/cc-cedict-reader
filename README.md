@@ -10,7 +10,7 @@ To install the library:
 
 To install the command:
 
-`go get github.com/xDestx/cc-cedict-reader/cmd/cccedict-parser`
+`go install github.com/xDestx/cc-cedict-reader/cmd/cccedict-parser`
 
 # Usage
 

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -55,6 +54,14 @@ type PinyinV1 struct {
 
 type PinyinV2 struct {
 	Word []PinyinV1
+}
+
+type LineParser interface {
+	ParseLine(line string) (Ci, error)
+}
+
+type basicLineParser struct {
+	Pym map[string]bool
 }
 
 var full_pinyin_list = []string{
@@ -302,8 +309,34 @@ func pinyinV2StrToPinyin(pys string) ([]PinyinV2, error) {
 	return v2List, nil
 }
 
-// Traditional Simplified [[pin1yin1]] /gloss; gloss; .../gloss; gloss; .../
+func makePyMap() map[string]bool {
+	pym := make(map[string]bool)
+	for _, v := range full_pinyin_list {
+		pym[v] = true
+	}
+	return pym
+}
+
 func ParseLine(line string) (Ci, error) {
+	pym := makePyMap()
+
+	return parseLine(pym, line)
+}
+
+func NewLineParser() LineParser {
+	pym := makePyMap()
+
+	return basicLineParser{
+		Pym: pym,
+	}
+}
+
+func (blp basicLineParser) ParseLine(line string) (Ci, error) {
+	return parseLine(blp.Pym, line)
+}
+
+// Traditional Simplified [[pin1yin1]] /gloss; gloss; .../gloss; gloss; .../
+func parseLine(pinyinVals map[string]bool, line string) (Ci, error) {
 	if strings.HasPrefix(line, "#") {
 		return Ci{}, errors.New("comment line")
 	}
@@ -459,7 +492,7 @@ func ParseLine(line string) (Ci, error) {
 
 	for _, v := range py {
 		for _, p := range v.Word {
-			if p.Type == Normal && !slices.Contains(full_pinyin_list, strings.ToLower(p.Sound)) {
+			if p.Type == Normal && !pinyinVals[strings.ToLower(p.Sound)] {
 				return Ci{}, fmt.Errorf("malformed pinyin - unrecognized pinyin value (check for ambiguity). Line: %s", line)
 			}
 		}

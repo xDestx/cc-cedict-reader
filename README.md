@@ -2,7 +2,7 @@
 
 This package handles parsing lines in the cc-cedict v1 and v2 formats and structures the data.
 
-# Install
+## Install
 
 To install the library:
 
@@ -12,9 +12,9 @@ To install the command:
 
 `go install github.com/xDestx/cc-cedict-reader/cmd/cccedict-parser`
 
-# Usage
+## Usage
 
-## Library
+### Library
 
 Parse a line with `ParseLine(line string) (Ci, error)`.
 
@@ -58,7 +58,7 @@ func ex_read_line() {
 }
 ```
 
-## Command
+### Command
 
 The command reads from stdin and outputs to stdout.
 
@@ -70,3 +70,4 @@ test.txt
 ```
 Ci{Fantizi:"各得其所", Jiantizi:"各得其所", Pinyin:PinyinV2{Word:[PinyinV1{Sound:"ge", Tone: 4, Type: 1}]}, PinyinV2{Word:[PinyinV1{Sound:"de", Tone: 2, Type: 1}]}, PinyinV2{Word:[PinyinV1{Sound:"qi", Tone: 2, Type: 1}]}, PinyinV2{Word:[PinyinV1{Sound:"suo", Tone: 3, Type: 1}]}, PinyinRaw:"ge4 de2 qi2 suo3", Gloss:[(idiom) each in the correct place; each is provided for], FormatVersion:V1}
 ```
+

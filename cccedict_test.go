@@ -17,15 +17,15 @@ type testCase[T any] struct {
 
 func TestParseLine(t *testing.T) {
 	tests := []testItem{
-		// {Name: "parseLine_PinyinInGloss", Test: parseLine_PinyinInGloss},
-		// {Name: "parseLine_HandlesOneGloss", Test: parseLine_HandlesOneGloss},
-		// {Name: "parseLine_HandlesManyGloss", Test: parseLine_HandlesManyGloss},
+		{Name: "parseLine_PinyinInGloss", Test: parseLine_PinyinInGloss},
+		{Name: "parseLine_HandlesOneGloss", Test: parseLine_HandlesOneGloss},
+		{Name: "parseLine_HandlesManyGloss", Test: parseLine_HandlesManyGloss},
 		// {Name: "parseLine_Error_MalformedLine", Test: parseLine_Error_MalformedLine},
-		// {Name: "parseLine_TraditionalMatches", Test: parseLine_TraditionalMatches},
-		// {Name: "parseLine_SimplifiedMatches", Test: parseLine_SimplifiedMatches},
-		// {Name: "parseLine_PinyinV1Matches", Test: parseLine_PinyinV1Matches},
+		{Name: "parseLine_TraditionalMatches", Test: parseLine_TraditionalMatches},
+		{Name: "parseLine_SimplifiedMatches", Test: parseLine_SimplifiedMatches},
+		{Name: "parseLine_PinyinV1Matches", Test: parseLine_PinyinV1Matches},
 		{Name: "parseLine_PinyinV2Matches", Test: parseLine_PinyinV2Matches},
-		// {Name: "parseLine_FullMatches", Test: parseLine_FullMatches},
+		{Name: "parseLine_FullMatches", Test: parseLine_FullMatches},
 	}
 
 	for _, v := range tests {
@@ -272,7 +272,7 @@ func parseLine_PinyinV1Matches(t *testing.T) {
 			},
 		},
 		{
-			Sentence: "大衛·艾登堡 大卫·艾登堡 [[Da4 wei4 · Ai4 deng1 bao3]] /David Attenborough (1926), British naturalist and broadcaster/",
+			Sentence: "大衛·艾登堡 大卫·艾登堡 [Da4 wei4 · Ai4 deng1 bao3] /David Attenborough (1926), British naturalist and broadcaster/",
 			Expected: []PinyinV1{
 				{
 					Sound: "Da",
@@ -339,7 +339,8 @@ func parseLine_PinyinV1Matches(t *testing.T) {
 			}
 
 			if !(pyw.Word[0].Sound == v.Expected[i].Sound && pyw.Word[0].Tone == v.Expected[i].Tone && pyw.Word[0].Type == v.Expected[i].Type) {
-				t.Errorf("failed when checking v1 pinyin. Line \"%s\".", v.Sentence)
+
+				t.Errorf("failed when checking v1 pinyin. Line \"%s\". Ex(%s) Ac(%s)", v.Sentence, pyV1ArrStr(v.Expected), pyV2ArrStr(parsed.Pinyin))
 				skip = true
 				continue
 			}
@@ -357,7 +358,7 @@ func parseLine_PinyinV2Matches(t *testing.T) {
 						{
 							Sound: "xx",
 							Type:  Unknown,
-							Tone:  None,
+							Tone:  T5,
 						},
 					},
 				},
@@ -576,6 +577,11 @@ func parseLine_PinyinV2Matches(t *testing.T) {
 							Tone:  T3,
 						},
 						{
+							Sound: "-",
+							Type:  Special,
+							Tone:  None,
+						},
+						{
 							Sound: "bi",
 							Type:  Normal,
 							Tone:  T4,
@@ -584,6 +590,11 @@ func parseLine_PinyinV2Matches(t *testing.T) {
 							Sound: "he",
 							Type:  Normal,
 							Tone:  T2,
+						},
+						{
+							Sound: ",",
+							Type:  Special,
+							Tone:  None,
 						},
 					},
 				},
@@ -598,6 +609,11 @@ func parseLine_PinyinV2Matches(t *testing.T) {
 							Sound: "jiu",
 							Type:  Normal,
 							Tone:  T3,
+						},
+						{
+							Sound: "-",
+							Type:  Special,
+							Tone:  None,
 						},
 						{
 							Sound: "bi",
@@ -649,9 +665,9 @@ func parseLine_PinyinV2Matches(t *testing.T) {
 	}
 }
 
-func pyV2ArrStr(pyv2arr []PinyinV2) string {
+func pyV1ArrStr(pyv1arr []PinyinV1) string {
 	items := []string{}
-	for _, v := range pyv2arr {
+	for _, v := range pyv1arr {
 		items = append(items, v.String())
 	}
 	return strings.Join(items, ", ")

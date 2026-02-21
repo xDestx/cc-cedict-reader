@@ -82,8 +82,16 @@ func (p PinyinV2) String() string {
 	return fmt.Sprintf("PinyinV2{Word:[%s]}", strings.Join(strs, ", "))
 }
 
+func pyV2ArrStr(pyv2arr []PinyinV2) string {
+	items := []string{}
+	for _, v := range pyv2arr {
+		items = append(items, v.String())
+	}
+	return strings.Join(items, ", ")
+}
+
 func (ci Ci) String() string {
-	return fmt.Sprintf("Ci{Fantizi:\"%s\", Jiantizi:\"%s\", Pinyin:%s, PinyinRaw:\"%s\", Gloss:[%s], FormatVersion:%s}", ci.Fantizi, ci.Jiantizi, "", strings.Join(ci.Gloss, ", "), ci.PinyinRaw, ci.FormatVersion)
+	return fmt.Sprintf("Ci{Fantizi:\"%s\", Jiantizi:\"%s\", Pinyin:%s, PinyinRaw:\"%s\", Gloss:[%s], FormatVersion:%s}", ci.Fantizi, ci.Jiantizi, pyV2ArrStr(ci.Pinyin), ci.PinyinRaw, strings.Join(ci.Gloss, ", "), ci.FormatVersion)
 }
 
 func pinyinV1StrToPinyin(pys string) ([]PinyinV2, error) {
@@ -124,7 +132,7 @@ func getPyV1ForPySegmentRunes(runes []rune) (PinyinV1, error) {
 	if string(runes) == "xx5" {
 		return PinyinV1{
 			Sound: "xx",
-			Tone:  None,
+			Tone:  T5,
 			Type:  Unknown,
 		}, nil
 	}
@@ -148,7 +156,9 @@ func getPyV1ForPySegmentRunes(runes []rune) (PinyinV1, error) {
 		return PinyinV1{}, errors.New("malformed pinyin")
 	}
 
-	sound = strings.TrimSuffix(sound, "-")
+	if ns := strings.TrimSuffix(sound, "-"); ns != "" {
+		sound = ns
+	}
 
 	isAlphabetic, err := regexp.MatchString(`[a-zA-Z]`, sound)
 
@@ -206,7 +216,14 @@ func pinyinV2StrToPinyin(pys string) ([]PinyinV2, error) {
 				if openBracket {
 					removePrefix = 1
 				}
-				pyItems = append(pyItems, runesBuilder[removePrefix:len(runesBuilder)-removeSuffix])
+
+				cleanedRunes := runesBuilder[removePrefix : len(runesBuilder)-removeSuffix]
+				if len(cleanedRunes) != 0 {
+					pyItems = append(pyItems, cleanedRunes)
+				} else {
+					//likely a special character
+					pyItems = append(pyItems, runesBuilder)
+				}
 				runesBuilder = []rune{}
 				openBracket = false
 			}
@@ -355,6 +372,7 @@ func ParseLine(line string) (Ci, error) {
 		Fantizi:       fantizi,
 		Jiantizi:      jiantizi,
 		Pinyin:        py,
+		PinyinRaw:     pinyin,
 		Gloss:         gloss,
 		FormatVersion: pyVersion,
 	}, nil

@@ -1,4 +1,4 @@
-package cccedictparse
+package main
 
 import (
 	"bufio"

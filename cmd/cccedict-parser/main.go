@@ -9,6 +9,8 @@ import (
 	cccedictparser "github.com/xDestx/cc-cedict-reader"
 )
 
+const help_text = "Format: <cmd> <optional file path>\nEx: cccedict-parser\nEx: cccedict-parser path/to/my/file\n"
+
 func main() {
 	var input io.Reader
 	if len(os.Args) == 2 {
@@ -23,11 +25,12 @@ func main() {
 	} else if len(os.Args) == 1 {
 		input = os.Stdin
 	} else {
-		log.Fatalf("format: <cmd> <optional file path>\nEx: cccedict-parser\nEx: cccedict-parser path/to/my/file\n")
+		log.Fatalf(help_text)
 		return
 	}
 
 	scanner := bufio.NewScanner(input)
+	lineParser := cccedictparser.NewLineParser()
 
 	for scanner.Scan() {
 		if err := scanner.Err(); err != nil {
@@ -36,7 +39,7 @@ func main() {
 
 		l := scanner.Text()
 
-		ci, err := cccedictparser.ParseLine(l)
+		ci, err := lineParser.ParseLine(l)
 
 		if err == nil {
 			os.Stdout.WriteString(ci.String() + "\n")

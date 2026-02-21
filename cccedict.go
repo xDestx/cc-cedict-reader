@@ -3,9 +3,6 @@ package cccedictparser
 import (
 	"errors"
 	"fmt"
-	"regexp"
-	"slices"
-	"strconv"
 	"strings"
 
 	"golang.org/x/text/unicode/norm"
@@ -55,6 +52,14 @@ type PinyinV1 struct {
 
 type PinyinV2 struct {
 	Word []PinyinV1
+}
+
+type LineParser interface {
+	ParseLine(line string) (Ci, error)
+}
+
+type basicLineParser struct {
+	Pym map[string]bool
 }
 
 var full_pinyin_list = []string{
@@ -110,7 +115,7 @@ func (p PinyinV1) String() string {
 }
 
 func (p PinyinV2) String() string {
-	strs := []string{}
+	strs := make([]string, 0, len(p.Word))
 	for _, v := range p.Word {
 		strs = append(strs, v.String())
 	}
@@ -118,7 +123,7 @@ func (p PinyinV2) String() string {
 }
 
 func pyV2ArrStr(pyv2arr []PinyinV2) string {
-	items := []string{}
+	items := make([]string, 0, len(pyv2arr))
 	for _, v := range pyv2arr {
 		items = append(items, v.String())
 	}
@@ -132,12 +137,14 @@ func (ci Ci) String() string {
 func pinyinV1StrToPinyin(pys string) ([]PinyinV2, error) {
 	items := strings.Split(pys, " ")
 
-	pyItems := []PinyinV2{}
+	pyItems := make([]PinyinV2, 0, len(items))
+
+	runes := make([]rune, 0, 10)
 
 	//ci2 shu1
 	for _, v := range items {
 		//ci2
-		runes := []rune{}
+		runes = runes[:0]
 		for _, c := range v {
 			runes = append(runes, c)
 		}
@@ -156,6 +163,42 @@ func pinyinV1StrToPinyin(pys string) ([]PinyinV2, error) {
 	return pyItems, nil
 }
 
+func getTone(s rune) (Tone, error) {
+
+	switch s {
+	case 49:
+		return T1, nil
+	case 50:
+		return T2, nil
+	case 51:
+		return T3, nil
+	case 52:
+		return T4, nil
+	case 53:
+		return T5, nil
+	default:
+		return None, errors.New("unrecognized tone")
+	}
+}
+
+func soundIsAlphabetic(str string) bool {
+	for _, v := range str {
+		if !((v >= 97 && v <= 122) || (v >= 65 && v <= 90)) {
+			return false
+		}
+	}
+	return true
+}
+
+func soundHasNumber(str string) bool {
+	for _, v := range str {
+		if v >= 48 && v <= 57 {
+			return true
+		}
+	}
+	return false
+}
+
 func getPyV1ForPySegmentRunes(runes []rune) (PinyinV1, error) {
 	hasTone := false
 	var tone Tone
@@ -172,9 +215,9 @@ func getPyV1ForPySegmentRunes(runes []rune) (PinyinV1, error) {
 		}, nil
 	}
 
-	if toneVal, err := strconv.Atoi(string(runes[len(runes)-1])); err == nil && toneVal <= 5 && toneVal >= 1 {
+	if toneVal, err := getTone(runes[len(runes)-1]); err == nil {
 		hasTone = true
-		tone = uint8(toneVal)
+		tone = toneVal
 	}
 
 	var sound string
@@ -197,16 +240,9 @@ func getPyV1ForPySegmentRunes(runes []rune) (PinyinV1, error) {
 		sound = ns
 	}
 
-	isAlphabetic, err := regexp.MatchString(`^[a-zA-Z]+$`, sound)
-	if err != nil {
-		return PinyinV1{}, errors.New("malformed pinyin v1")
-	}
+	isAlphabetic := soundIsAlphabetic(sound)
 
-	hasNumber, err := regexp.MatchString(`\d`, sound)
-
-	if err != nil {
-		return PinyinV1{}, errors.New("malformed pinyin v1")
-	}
+	hasNumber := soundHasNumber(sound)
 
 	if hasNumber && len(sound) != 1 {
 		return PinyinV1{}, errors.New("malformed pinyin v1")
@@ -233,15 +269,20 @@ func getPyV1ForPySegmentRunes(runes []rune) (PinyinV1, error) {
 func pinyinV2StrToPinyin(pys string) ([]PinyinV2, error) {
 	words := strings.Split(pys, " ")
 
-	v2List := []PinyinV2{}
+	v2List := make([]PinyinV2, 0, len(words))
+
+	wordsForPyV2 := make([]PinyinV1, 0, len(words)*6)
+
+	runesBuilder := make([]rune, 0, 10)
+	pyItems := make([][]rune, 0, len(words)*6)
 
 	//Ping2guo3 shou3ji1
 	for _, word := range words {
-		wordsForPyV2 := []PinyinV1{}
+		wordsForPyV2 = wordsForPyV2[:0]
 
 		//Ping2guo3
-		runesBuilder := []rune{}
-		pyItems := [][]rune{}
+		runesBuilder := runesBuilder[:0]
+		pyItems := pyItems[:0]
 		openBracket := false
 		for _, c := range word {
 			runesBuilder = append(runesBuilder, c)
@@ -251,7 +292,7 @@ func pinyinV2StrToPinyin(pys string) ([]PinyinV2, error) {
 				openBracket = true
 			}
 
-			_, err := strconv.Atoi(sc)
+			_, err := getTone(c)
 
 			if err == nil || (openBracket && sc == "}") || sc == "-" {
 				removeSuffix := 0
@@ -265,19 +306,25 @@ func pinyinV2StrToPinyin(pys string) ([]PinyinV2, error) {
 
 				cleanedRunes := runesBuilder[removePrefix : len(runesBuilder)-removeSuffix]
 				if len(cleanedRunes) != 0 {
-					pyItems = append(pyItems, cleanedRunes)
+					api := make([]rune, len(cleanedRunes))
+					copy(api, cleanedRunes)
+					pyItems = append(pyItems, api)
 				} else {
 					//likely a special character
-					pyItems = append(pyItems, runesBuilder)
+					api := make([]rune, len(runesBuilder))
+					copy(api, runesBuilder)
+					pyItems = append(pyItems, api)
 				}
-				runesBuilder = []rune{}
+				runesBuilder = runesBuilder[:0]
 				openBracket = false
 			}
 		}
 
 		if len(runesBuilder) != 0 {
-			pyItems = append(pyItems, runesBuilder)
-			runesBuilder = []rune{}
+			api := make([]rune, len(runesBuilder))
+			copy(api, runesBuilder)
+			pyItems = append(pyItems, api)
+			runesBuilder = runesBuilder[:0]
 		}
 
 		for _, pyItem := range pyItems {
@@ -294,16 +341,45 @@ func pinyinV2StrToPinyin(pys string) ([]PinyinV2, error) {
 			wordsForPyV2 = append(wordsForPyV2, item)
 		}
 
+		nw := make([]PinyinV1, len(wordsForPyV2))
+		copy(nw, wordsForPyV2)
+
 		v2List = append(v2List, PinyinV2{
-			Word: wordsForPyV2,
+			Word: nw,
 		})
 	}
 
 	return v2List, nil
 }
 
-// Traditional Simplified [[pin1yin1]] /gloss; gloss; .../gloss; gloss; .../
+func makePyMap() map[string]bool {
+	pym := make(map[string]bool)
+	for _, v := range full_pinyin_list {
+		pym[v] = true
+	}
+	return pym
+}
+
 func ParseLine(line string) (Ci, error) {
+	pym := makePyMap()
+
+	return parseLine(pym, line)
+}
+
+func NewLineParser() LineParser {
+	pym := makePyMap()
+
+	return basicLineParser{
+		Pym: pym,
+	}
+}
+
+func (blp basicLineParser) ParseLine(line string) (Ci, error) {
+	return parseLine(blp.Pym, line)
+}
+
+// Traditional Simplified [[pin1yin1]] /gloss; gloss; .../gloss; gloss; .../
+func parseLine(pinyinVals map[string]bool, line string) (Ci, error) {
 	if strings.HasPrefix(line, "#") {
 		return Ci{}, errors.New("comment line")
 	}
@@ -331,7 +407,7 @@ func ParseLine(line string) (Ci, error) {
 	pyOpenBracketCount := 0
 	pyCloseBracketCount := 0
 
-	lineRunes := []rune{}
+	lineRunes := make([]rune, 0, len(line))
 
 	for _, r := range line {
 		lineRunes = append(lineRunes, r)
@@ -459,7 +535,7 @@ func ParseLine(line string) (Ci, error) {
 
 	for _, v := range py {
 		for _, p := range v.Word {
-			if p.Type == Normal && !slices.Contains(full_pinyin_list, strings.ToLower(p.Sound)) {
+			if p.Type == Normal && !pinyinVals[strings.ToLower(p.Sound)] {
 				return Ci{}, fmt.Errorf("malformed pinyin - unrecognized pinyin value (check for ambiguity). Line: %s", line)
 			}
 		}

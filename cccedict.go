@@ -3,6 +3,7 @@ package cccedictparser
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -307,10 +308,10 @@ func pinyinV2StrToPinyin(pys string) ([]PinyinV2, error) {
 
 				cleanedRunes := runesBuilder[removePrefix : len(runesBuilder)-removeSuffix]
 				if len(cleanedRunes) != 0 {
-					pyItems = append(pyItems, cleanedRunes)
+					pyItems = append(pyItems, slices.Clone(cleanedRunes))
 				} else {
 					//likely a special character
-					pyItems = append(pyItems, runesBuilder)
+					pyItems = append(pyItems, slices.Clone(runesBuilder))
 				}
 				runesBuilder = runesBuilder[:0]
 				openBracket = false
@@ -318,7 +319,7 @@ func pinyinV2StrToPinyin(pys string) ([]PinyinV2, error) {
 		}
 
 		if len(runesBuilder) != 0 {
-			pyItems = append(pyItems, runesBuilder)
+			pyItems = append(pyItems, slices.Clone(runesBuilder))
 			runesBuilder = runesBuilder[:0]
 		}
 
@@ -337,7 +338,7 @@ func pinyinV2StrToPinyin(pys string) ([]PinyinV2, error) {
 		}
 
 		v2List = append(v2List, PinyinV2{
-			Word: wordsForPyV2,
+			Word: slices.Clone(wordsForPyV2),
 		})
 	}
 

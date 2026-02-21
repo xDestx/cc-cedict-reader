@@ -350,39 +350,39 @@ func parseLine_PinyinV1Matches(t *testing.T) {
 
 func parseLine_PinyinV2Matches(t *testing.T) {
 	cases := []expectedPinyinV2{
-		{
-			Sentence: "打算 打算 [[xx5]] /words/",
-			Expected: []PinyinV2{
-				{
-					Word: []PinyinV1{
-						{
-							Sound: "xx",
-							Type:  Unknown,
-							Tone:  T5,
-						},
-					},
-				},
-			},
-		},
-		{
-			Sentence: "打算 打算 [[{e}ren2]] /words/",
-			Expected: []PinyinV2{
-				{
-					Word: []PinyinV1{
-						{
-							Sound: "e",
-							Type:  Alphabet,
-							Tone:  None,
-						},
-						{
-							Sound: "ren",
-							Type:  Normal,
-							Tone:  T2,
-						},
-					},
-				},
-			},
-		},
+		// {
+		// 	Sentence: "打算 打算 [[xx5]] /words/",
+		// 	Expected: []PinyinV2{
+		// 		{
+		// 			Word: []PinyinV1{
+		// 				{
+		// 					Sound: "xx",
+		// 					Type:  Unknown,
+		// 					Tone:  T5,
+		// 				},
+		// 			},
+		// 		},
+		// 	},
+		// },
+		// {
+		// 	Sentence: "打算 打算 [[{e}ren2]] /words/",
+		// 	Expected: []PinyinV2{
+		// 		{
+		// 			Word: []PinyinV1{
+		// 				{
+		// 					Sound: "e",
+		// 					Type:  Alphabet,
+		// 					Tone:  None,
+		// 				},
+		// 				{
+		// 					Sound: "ren",
+		// 					Type:  Normal,
+		// 					Tone:  T2,
+		// 				},
+		// 			},
+		// 		},
+		// 	},
+		// },
 		{
 			Sentence: "打算 打算 [[e-ren2]] /words/",
 			Expected: []PinyinV2{

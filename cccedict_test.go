@@ -17,15 +17,15 @@ type testCase[T any] struct {
 
 func TestParseLine(t *testing.T) {
 	tests := []testItem{
-		// {Name: "parseLine_PinyinInGloss", Test: parseLine_PinyinInGloss},
-		// {Name: "parseLine_HandlesOneGloss", Test: parseLine_HandlesOneGloss},
-		// {Name: "parseLine_HandlesManyGloss", Test: parseLine_HandlesManyGloss},
+		{Name: "parseLine_PinyinInGloss", Test: parseLine_PinyinInGloss},
+		{Name: "parseLine_HandlesOneGloss", Test: parseLine_HandlesOneGloss},
+		{Name: "parseLine_HandlesManyGloss", Test: parseLine_HandlesManyGloss},
 		{Name: "parseLine_Error_MalformedLine", Test: parseLine_Error_MalformedLine},
-		// {Name: "parseLine_TraditionalMatches", Test: parseLine_TraditionalMatches},
-		// {Name: "parseLine_SimplifiedMatches", Test: parseLine_SimplifiedMatches},
-		// {Name: "parseLine_PinyinV1Matches", Test: parseLine_PinyinV1Matches},
-		// {Name: "parseLine_PinyinV2Matches", Test: parseLine_PinyinV2Matches},
-		// {Name: "parseLine_FullMatches", Test: parseLine_FullMatches},
+		{Name: "parseLine_TraditionalMatches", Test: parseLine_TraditionalMatches},
+		{Name: "parseLine_SimplifiedMatches", Test: parseLine_SimplifiedMatches},
+		{Name: "parseLine_PinyinV1Matches", Test: parseLine_PinyinV1Matches},
+		{Name: "parseLine_PinyinV2Matches", Test: parseLine_PinyinV2Matches},
+		{Name: "parseLine_FullMatches", Test: parseLine_FullMatches},
 	}
 
 	for _, v := range tests {
@@ -134,7 +134,7 @@ func parseLine_Error_MalformedLine(t *testing.T) {
 			Sentence: "浮泛 浮泛 [fu2fan4] /to float about/(of a feeling) to show on the face/(of speech, friendship etc) shallow/vague/",
 		},
 		{
-			Expected: "malformed pinyin v2 - ambiguity",
+			Expected: "ambiguity",
 			Sentence: "e人 e人 [[eren2]] /(slang) extroverted person/",
 		},
 		{
@@ -229,7 +229,7 @@ func parseLine_SimplifiedMatches(t *testing.T) {
 		parsed, err := ParseLine(v.Sentence)
 
 		if err != nil {
-			t.Errorf("error: %s. Line %s", err.Error(), v.Sentence)
+			t.Errorf("error: %s. Line %s. Output: %s", err.Error(), v.Sentence, parsed.String())
 			continue
 		}
 
@@ -312,7 +312,7 @@ func parseLine_PinyinV1Matches(t *testing.T) {
 		parsed, err := ParseLine(v.Sentence)
 
 		if err != nil {
-			t.Errorf("error: %s. Line %s", err.Error(), v.Sentence)
+			t.Errorf("error: %s. Line %s. Output: %s", err.Error(), v.Sentence, parsed.String())
 			continue
 		}
 
@@ -656,7 +656,7 @@ func parseLine_PinyinV2Matches(t *testing.T) {
 
 			for j := 0; j < len(parsed.Pinyin[i].Word); j++ {
 				if !pyEq(parsed.Pinyin[i].Word[j], v.Expected[i].Word[j]) {
-					t.Errorf("expected %s, actual %s", v.Expected[i].Word[j], parsed.Pinyin[i].Word[j])
+					t.Errorf("expected %s, actual %s. Line: %s", v.Expected[i].Word[j], parsed.Pinyin[i].Word[j], v.Sentence)
 					i = len(parsed.Pinyin)
 					break
 				}

@@ -148,9 +148,7 @@ func getPyV1ForPySegmentRunes(runes []rune) (PinyinV1, error) {
 		return PinyinV1{}, errors.New("malformed pinyin")
 	}
 
-	if strings.HasSuffix(sound, "-") {
-		sound = sound[:len(sound)-1]
-	}
+	sound = strings.TrimSuffix(sound, "-")
 
 	isAlphabetic, err := regexp.MatchString(`[a-zA-Z]`, sound)
 

@@ -116,7 +116,7 @@ func (p PinyinV1) String() string {
 }
 
 func (p PinyinV2) String() string {
-	strs := []string{}
+	strs := make([]string, 0, len(p.Word))
 	for _, v := range p.Word {
 		strs = append(strs, v.String())
 	}
@@ -124,7 +124,7 @@ func (p PinyinV2) String() string {
 }
 
 func pyV2ArrStr(pyv2arr []PinyinV2) string {
-	items := []string{}
+	items := make([]string, 0, len(pyv2arr))
 	for _, v := range pyv2arr {
 		items = append(items, v.String())
 	}
@@ -138,12 +138,14 @@ func (ci Ci) String() string {
 func pinyinV1StrToPinyin(pys string) ([]PinyinV2, error) {
 	items := strings.Split(pys, " ")
 
-	pyItems := []PinyinV2{}
+	pyItems := make([]PinyinV2, 0, len(items))
+
+	runes := make([]rune, 0, len(items))
 
 	//ci2 shu1
 	for _, v := range items {
 		//ci2
-		runes := []rune{}
+		runes = runes[:0]
 		for _, c := range v {
 			runes = append(runes, c)
 		}
@@ -268,15 +270,20 @@ func getPyV1ForPySegmentRunes(runes []rune) (PinyinV1, error) {
 func pinyinV2StrToPinyin(pys string) ([]PinyinV2, error) {
 	words := strings.Split(pys, " ")
 
-	v2List := []PinyinV2{}
+	v2List := make([]PinyinV2, 0, len(words))
+
+	wordsForPyV2 := make([]PinyinV1, 0, len(words))
+
+	runesBuilder := make([]rune, 0, len(words))
+	pyItems := make([][]rune, 0, len(words))
 
 	//Ping2guo3 shou3ji1
 	for _, word := range words {
-		wordsForPyV2 := []PinyinV1{}
+		wordsForPyV2 = wordsForPyV2[:0]
 
 		//Ping2guo3
-		runesBuilder := []rune{}
-		pyItems := [][]rune{}
+		runesBuilder := runesBuilder[:0]
+		pyItems := pyItems[:0]
 		openBracket := false
 		for _, c := range word {
 			runesBuilder = append(runesBuilder, c)
@@ -305,14 +312,14 @@ func pinyinV2StrToPinyin(pys string) ([]PinyinV2, error) {
 					//likely a special character
 					pyItems = append(pyItems, runesBuilder)
 				}
-				runesBuilder = []rune{}
+				runesBuilder = runesBuilder[:0]
 				openBracket = false
 			}
 		}
 
 		if len(runesBuilder) != 0 {
 			pyItems = append(pyItems, runesBuilder)
-			runesBuilder = []rune{}
+			runesBuilder = runesBuilder[:0]
 		}
 
 		for _, pyItem := range pyItems {
@@ -392,7 +399,7 @@ func parseLine(pinyinVals map[string]bool, line string) (Ci, error) {
 	pyOpenBracketCount := 0
 	pyCloseBracketCount := 0
 
-	lineRunes := []rune{}
+	lineRunes := make([]rune, 0, len(line))
 
 	for _, r := range line {
 		lineRunes = append(lineRunes, r)

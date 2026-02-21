@@ -23,7 +23,7 @@ func main() {
 	} else if len(os.Args) == 1 {
 		input = os.Stdin
 	} else {
-		log.Fatalf("format: <cmd> <optional file path>\nEx: cc-cedict-parse\nEx: cc-cedict-parse path/to/my/file")
+		log.Fatalf("format: <cmd> <optional file path>\nEx: cccedict-parser\nEx: cccedict-parser path/to/my/file\n")
 		return
 	}
 
@@ -41,7 +41,7 @@ func main() {
 		if err == nil {
 			os.Stdout.WriteString(ci.String() + "\n")
 		} else {
-			os.Stdout.WriteString(err.Error())
+			os.Stdout.WriteString(err.Error() + "\n")
 		}
 	}
 }

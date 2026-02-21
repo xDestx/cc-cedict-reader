@@ -304,6 +304,14 @@ func pinyinV2StrToPinyin(pys string) ([]PinyinV2, error) {
 
 // Traditional Simplified [[pin1yin1]] /gloss; gloss; .../gloss; gloss; .../
 func ParseLine(line string) (Ci, error) {
+	if strings.HasPrefix(line, "#") {
+		return Ci{}, errors.New("comment line")
+	}
+
+	if strings.TrimSpace(line) == "" {
+		return Ci{}, errors.New("empty line")
+	}
+
 	traditionalDelimit := " "
 	simplifiedDelimit := " "
 	pinyinStart := "["

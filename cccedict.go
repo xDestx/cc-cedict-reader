@@ -3,8 +3,6 @@ package cccedictparser
 import (
 	"errors"
 	"fmt"
-	"slices"
-	"strconv"
 	"strings"
 
 	"golang.org/x/text/unicode/norm"
@@ -294,7 +292,7 @@ func pinyinV2StrToPinyin(pys string) ([]PinyinV2, error) {
 				openBracket = true
 			}
 
-			_, err := strconv.Atoi(sc)
+			_, err := getTone(c)
 
 			if err == nil || (openBracket && sc == "}") || sc == "-" {
 				removeSuffix := 0
@@ -308,10 +306,14 @@ func pinyinV2StrToPinyin(pys string) ([]PinyinV2, error) {
 
 				cleanedRunes := runesBuilder[removePrefix : len(runesBuilder)-removeSuffix]
 				if len(cleanedRunes) != 0 {
-					pyItems = append(pyItems, slices.Clone(cleanedRunes))
+					api := make([]rune, len(cleanedRunes))
+					copy(api, cleanedRunes)
+					pyItems = append(pyItems, api)
 				} else {
 					//likely a special character
-					pyItems = append(pyItems, slices.Clone(runesBuilder))
+					api := make([]rune, len(runesBuilder))
+					copy(api, runesBuilder)
+					pyItems = append(pyItems, api)
 				}
 				runesBuilder = runesBuilder[:0]
 				openBracket = false
@@ -319,7 +321,9 @@ func pinyinV2StrToPinyin(pys string) ([]PinyinV2, error) {
 		}
 
 		if len(runesBuilder) != 0 {
-			pyItems = append(pyItems, slices.Clone(runesBuilder))
+			api := make([]rune, len(runesBuilder))
+			copy(api, runesBuilder)
+			pyItems = append(pyItems, api)
 			runesBuilder = runesBuilder[:0]
 		}
 
@@ -337,8 +341,11 @@ func pinyinV2StrToPinyin(pys string) ([]PinyinV2, error) {
 			wordsForPyV2 = append(wordsForPyV2, item)
 		}
 
+		nw := make([]PinyinV1, len(wordsForPyV2))
+		copy(nw, wordsForPyV2)
+
 		v2List = append(v2List, PinyinV2{
-			Word: slices.Clone(wordsForPyV2),
+			Word: nw,
 		})
 	}
 

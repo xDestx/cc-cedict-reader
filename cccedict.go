@@ -141,7 +141,7 @@ func pinyinV1StrToPinyin(pys string) ([]PinyinV2, error) {
 
 	pyItems := make([]PinyinV2, 0, len(items))
 
-	runes := make([]rune, 0, len(items))
+	runes := make([]rune, 0, 10)
 
 	//ci2 shu1
 	for _, v := range items {
@@ -273,10 +273,10 @@ func pinyinV2StrToPinyin(pys string) ([]PinyinV2, error) {
 
 	v2List := make([]PinyinV2, 0, len(words))
 
-	wordsForPyV2 := make([]PinyinV1, 0, len(words))
+	wordsForPyV2 := make([]PinyinV1, 0, len(words)*6)
 
-	runesBuilder := make([]rune, 0, len(words))
-	pyItems := make([][]rune, 0, len(words))
+	runesBuilder := make([]rune, 0, 10)
+	pyItems := make([][]rune, 0, len(words)*6)
 
 	//Ping2guo3 shou3ji1
 	for _, word := range words {
